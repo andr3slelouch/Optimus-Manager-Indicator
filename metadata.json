@@ -1,0 +1,10 @@
+{
+  "name": "Optimus Manager Indicator",
+  "description": "Intel/Hybrid/NVIDIA GPU Switch",
+  "uuid": "optimus-manager-indicator@andr3slelouch.github.com",
+  "shell-version": [
+    "3.36"
+  ],
+  "version":1,
+  "url": "https://github.com/andr3slelouch/Optimus-Manager-Indicator"
+}
