@@ -117,7 +117,7 @@ const OptimusManagerIndicator = new Lang.Class({
     let topBox = new St.BoxLayout();
     panelTempText = new St.Label({
       y_align: Clutter.ActorAlign.CENTER,
-      text: "..."
+      text: ""
     });
     topBox.add_actor(this.statusIcon);
     topBox.add_actor(panelTempText);
