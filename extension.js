@@ -22,24 +22,16 @@ const {
   GObject,
   Soup
 } = imports.gi;
-//const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Dialog = imports.ui.dialog;
 const Lang = imports.lang;
-//const Gio = imports.gi.Gio;
-//const GObject = imports.gi.GObject;
 const Main = imports.ui.main;
 const Mainloop = imports.mainloop;
 const ModalDialog = imports.ui.modalDialog;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const ByteArray = imports.byteArray;
-//const GLib = imports.gi.GLib;
 const Gtk = imports.gi.Gtk;
-//Gtk.init(null);
-const Gettext = imports.gettext.domain('haguichi');
-const _ = Gettext.gettext;
-
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
 let nvidiaSwitch = 'optimus-manager --no-confirm --switch nvidia';
@@ -94,7 +86,7 @@ var OptimusManagerDialog = GObject.registerClass(
     }
   });
 /**
- * Behold the Haguichi Indicator class.
+ * Behold the Optimus Manager Indicator Indicator class.
  */
 const OptimusManagerIndicator = new Lang.Class({
   Name: 'OptimusManagerIndicator',
@@ -166,14 +158,6 @@ const OptimusManagerIndicator = new Lang.Class({
   _setIndicatorVisibility: function(visible) {
     this.visible = visible;
   },
-
-  /**
-   * This function adds or removes the checkmark for the "Show Haguichi" menu item.
-   */
-  _setAppVisibility: function(visible) {
-    this.showMenuItem.setOrnament((visible == true) ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-  },
-
   /**
    * This function saves the current mode and makes calls to set both the icon and menu into the requested mode.
    */
@@ -185,7 +169,7 @@ const OptimusManagerIndicator = new Lang.Class({
   },
 
   /**
-   * This function makes every menu item reflect the current mode Haguichi is in.
+   * This function makes every menu item reflect the current mode Optimus Manager Indicator is in.
    */
   _setMenuMode: function(mode) {
     switch (mode) {
@@ -236,7 +220,7 @@ const OptimusManagerIndicator = new Lang.Class({
   },
 
   /**
-   * This function makes the status icon reflect the current mode Haguichi is in.
+   * This function makes the status icon reflect the current mode Optimus Manager Indicator is in.
    */
   _setTempMode: function(mode) {
 
@@ -283,7 +267,6 @@ let optimusManagerIndicator;
 function enable() {
   optimusManagerIndicator = new OptimusManagerIndicator();
   Main.panel.addToStatusArea('optimus-manager-indicator', optimusManagerIndicator);
-  //Main.panel._rightBox.insert_child_at_index(panelTempText, 1);
 }
 
 /**
