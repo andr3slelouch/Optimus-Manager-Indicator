@@ -103,6 +103,10 @@ const OptimusManagerIndicator = new Lang.Class({
     });
     var [ok, out, err, exit] = GLib.spawn_command_line_sync(
       '/bin/bash -c "optimus-manager --print-mode | grep \'Current GPU mode\' | awk \'{print $5}\'"');
+    if (err =! ""){
+      this.gpu_mode = 'error'
+      this._setIcon(this.gpu_mode);
+    }
     this.gpu_mode = ByteArray.toString(out).replace('\n', '');
     this._setIcon(this.gpu_mode);
 
@@ -207,6 +211,8 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
 
       default:
+        this._setIcon("intel");
+        Main.notifyError(_("You're not using GDM-PRIME"));
         this.nvidiaProfiles.visible = true;
         this.nvidiaProfiles.setSensitive(true);
         this.switchIntel.visible = true;
@@ -246,6 +252,10 @@ const OptimusManagerIndicator = new Lang.Class({
    * This function sets the status icon.
    */
   _setIcon: function(iconName) {
+    if(iconName == 'error'){
+      this.iconName = iconName;
+      this.statusIcon = new St.Icon({ icon_name: 'action-unavailable-symbolic.symbolic', style_class: 'system-status-icon' });
+    }
     this.iconName = iconName;
     this.statusIcon.gicon = Gio.icon_new_for_string(Me.path + '/icons/primeindicator' + iconName + 'symbolic.svg');
   },
