@@ -34,9 +34,24 @@ const ByteArray = imports.byteArray;
 const Gtk = imports.gi.Gtk;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
+let distroName = '/bin/bash -c "cat /etc/issue.net | awk \'{print $1}\'"'
 let nvidiaSwitch = 'optimus-manager --no-confirm --switch nvidia';
 let hybridSwitch = 'optimus-manager --no-confirm --switch hybrid';
 let intelSwitch = 'optimus-manager --no-confirm --switch intel';
+
+let switchCommandsDict = {
+  "Arch" : {
+    "nvidiaSwitch": 'optimus-manager --no-confirm --switch nvidia',
+    "hybridSwitch": 'optimus-manager --no-confirm --switch hybrid',
+    "intelSwitch": 'optimus-manager --no-confirm --switch intel'
+  },
+  "Ubuntu":{
+    "nvidiaSwitch": 'prime-select nvidia',
+    "hybridSwitch": 'prime-select on-demand',
+    "intelSwitch": 'prime-select intel'
+  }
+};
+
 let notifySwitch = 'notify-send -h int:transient:2 -i \\\"dialog-information-symbolic\\\" \\\"Optimus Manager Indicator\\\" \\\"Switching graphics and restaring X server to finalize process! \\\" ; ';
 let nvidiaSettings = "nvidia-settings -p \'PRIME Profiles\'";
 let panelTempText, timeout;
@@ -61,9 +76,6 @@ var OptimusManagerDialog = GObject.registerClass(
 
       let content = new Dialog.MessageDialogContent({
         title: "Restart X server to switch on " + this._mode + "?"
-        //icon: new Gio.FileIcon({
-        //    file: Gio.File.new_for_uri(`${REPOSITORY_URL_BASE}${info.icon}`)
-        //})
       });
 
       this.contentLayout.add(content);
@@ -101,14 +113,10 @@ const OptimusManagerIndicator = new Lang.Class({
     this.statusIcon = new St.Icon({
       style_class: 'system-status-icon'
     });
-    var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-      '/bin/bash -c "optimus-manager --print-mode | grep \'Current GPU mode\' | awk \'{print $5}\'"');
-    if (err =! ""){
-      this.gpu_mode = 'error'
-      this._setIcon(this.gpu_mode);
-    }
-    this.gpu_mode = ByteArray.toString(out).replace('\n', '');
-    this._setIcon(this.gpu_mode);
+
+    //this._detectDistro();
+
+    this._detectPrimeState();
 
     let topBox = new St.BoxLayout();
     panelTempText = new St.Label({
@@ -170,6 +178,48 @@ const OptimusManagerIndicator = new Lang.Class({
     this._setMenuMode(mode);
 
     this.mode = mode;
+  },
+  /**
+   * This function would check the optimus manager status
+   */
+  _detectPrimeState: function() {
+    var [ok, optimusManagerOut, optimusManagerErr, exit] = GLib.spawn_command_line_sync(
+      '/bin/bash -c "optimus-manager --print-mode | grep \'Current GPU mode\' | awk \'{print $5}\'"');
+    var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
+      '/bin/bash -c "nvidia-smi -q -d TEMPERATURE | grep \'GPU Current Temp\' | awk \'{print $5}\'"');
+    if (optimusManagerErr != "" && nvidiaSmiErr != ""){
+      this.gpu_mode = 'error'
+      this._setIcon(this.gpu_mode);
+    }else if(nvidiaSmiErr ==""){
+      this.gpu_mode = 'nvidia'
+      this._setIcon(this.gpu_mode);
+    }else{
+      this.gpu_mode = ByteArray.toString(optimusManagerOut).replace('\n', '');
+      this._setIcon(this.gpu_mode);
+    }
+  },
+  /**
+   * This function would define the correct commands to switch depending if is Ubuntu or Arch.
+   */
+  _detectDistro: function() {
+    var switchCommandsDict = {
+      "Arch" : {
+        "nvidiaSwitch": 'optimus-manager --no-confirm --switch nvidia',
+        "hybridSwitch": 'optimus-manager --no-confirm --switch hybrid',
+        "intelSwitch": 'optimus-manager --no-confirm --switch intel'
+      },
+      "Ubuntu":{
+        "nvidiaSwitch": 'prime-select nvidia',
+        "hybridSwitch": 'prime-select on-demand',
+        "intelSwitch": 'prime-select intel'
+      }
+    };
+    var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
+      '/bin/bash -c "cat /etc/issue.net | awk \'{print $1}\'"');
+    console.log(distroOut+""+distroErr)
+    this.nvidiaSwitch = switchCommandsDict[distroOut]["nvidiaSwitch"]
+    this.hybridSwitch = switchCommandsDict[distroOut]["hybridSwitch"]
+    this.intelSwitch = switchCommandsDict[distroOut]["intelSwitch"]
   },
 
   /**
@@ -235,6 +285,10 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
 
       case 'hybrid':
+        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
+        break;
+
+      case 'on-demand':
         timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
         break;
 
