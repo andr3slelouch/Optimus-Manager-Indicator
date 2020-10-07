@@ -216,26 +216,33 @@ const OptimusManagerIndicator = new Lang.Class({
    * This function would check the optimus manager status
    */
   _detectPrimeState: function () {
-    var [
-      ok,
-      optimusManagerOut,
-      optimusManagerErr,
-      exit,
-    ] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
-    );
-    var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
-    );
-    if (optimusManagerErr == "" && optimusManagerOut != "") {
-      this.gpu_mode = ByteArray.toString(optimusManagerOut).replace("\n", "");
-      this._setIcon(this.gpu_mode);
-    } else if (optimusManagerErr != "" && nvidiaSmiOut != "") {
-      this.gpu_mode = "nvidia";
-      this._setIcon(this.gpu_mode);
+    let settings = getSettings();
+    let forcedMode = settings.get_boolean("always-show-gpu-temperature");
+    if (forcedMode) {
+      this.gpu_mode = "forced";
+      this._setIcon("nvidia");
     } else {
-      this.gpu_mode = "error";
-      this._setIcon(this.gpu_mode);
+      var [
+        ok,
+        optimusManagerOut,
+        optimusManagerErr,
+        exit,
+      ] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
+      );
+      var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
+      );
+      if (optimusManagerErr == "" && optimusManagerOut != "") {
+        this.gpu_mode = ByteArray.toString(optimusManagerOut).replace("\n", "");
+        this._setIcon(this.gpu_mode);
+      } else if (optimusManagerErr != "" && nvidiaSmiOut != "") {
+        this.gpu_mode = "nvidia";
+        this._setIcon(this.gpu_mode);
+      } else {
+        this.gpu_mode = "error";
+        this._setIcon(this.gpu_mode);
+      }
     }
   },
   /**
@@ -301,6 +308,17 @@ const OptimusManagerIndicator = new Lang.Class({
         this.switchNvidia.setSensitive(false);
         break;
 
+      case "forced":
+        this.nvidiaProfiles.visible = true;
+        this.nvidiaProfiles.setSensitive(true);
+        this.switchIntel.visible = true;
+        this.switchIntel.setSensitive(true);
+        this.switchHybrid.visible = true;
+        this.switchHybrid.setSensitive(true);
+        this.switchNvidia.visible = true;
+        this.switchNvidia.setSensitive(true);
+        break;
+
       default:
         this._setIcon("intel");
         Main.notifyError(_("You're not using GDM-PRIME"));
@@ -333,6 +351,10 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
 
       case "nvidia":
+        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
+        break;
+
+      case "forced":
         timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
         break;
 
@@ -389,4 +411,21 @@ function disable() {
   Mainloop.source_remove(timeout);
   optimusManagerIndicator.destroy();
   panelTempText.destroy();
+}
+
+function getSettings() {
+  let GioSSS = Gio.SettingsSchemaSource;
+  let schemaSource = GioSSS.new_from_directory(
+    Me.dir.get_child("schemas").get_path(),
+    GioSSS.get_default(),
+    false
+  );
+  let schemaObj = schemaSource.lookup(
+    "org.gnome.shell.extensions.optimus-manager-indicator",
+    true
+  );
+  if (!schemaObj) {
+    throw new Error("Cannot find schemas");
+  }
+  return new Gio.Settings({ settings_schema: schemaObj });
 }
