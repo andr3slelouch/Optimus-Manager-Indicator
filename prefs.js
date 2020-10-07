@@ -26,15 +26,17 @@ function buildPrefsWidget() {
   let field = new Gtk.Switch();
   grid.attach(field, 1, 0, 1, 1);
 
-  field.set_state(settings.get_boolean("always-show-gpu-temperature"));
-  field.connect("state-set", (widget) => {
-    settings.set_boolean(
-      "always-show-gpu-temperature",
-      widget.get_value_as_boolean()
-    );
+  // Save Button
+  let saveButton = new Gtk.Button({
+    label: " Save Changes ",
+    visible: true,
   });
-  settings.connect("changed::always-show-gpu-temperature", () => {
-    field.set_state(settings.get_boolean("always-show-gpu-temperature"));
+  grid.attach(saveButton, 1, 50, 1, 1);
+
+  field.set_state(settings.get_boolean("always-show-gpu-temperature"));
+
+  saveButton.connect("clicked", (button) => {
+    settings.set_boolean("always-show-gpu-temperature", field.get_state());
   });
 
   grid.show_all();
