@@ -23,6 +23,12 @@ function buildPrefsWidget() {
   });
   grid.attach(label, 0, 0, 1, 1);
 
+  let noteLabel = new Gtk.Label({
+    label: "Restart Gnome Shell (alt + F2, type r and hit ENTER) to see the changes",
+    halign: Gtk.Align.START,
+  });
+  grid.attach(noteLabel, 0, 0, 1, 4);
+
   let field = new Gtk.Switch();
   grid.attach(field, 1, 0, 1, 1);
 
