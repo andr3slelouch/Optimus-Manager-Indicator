@@ -15,13 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-const {
-  Clutter,
-  Gio,
-  GLib,
-  GObject,
-  Soup
-} = imports.gi;
+const { Clutter, Gio, GLib, GObject, Soup } = imports.gi;
 const St = imports.gi.St;
 const Dialog = imports.ui.dialog;
 const Lang = imports.lang;
@@ -34,36 +28,52 @@ const ByteArray = imports.byteArray;
 const Gtk = imports.gi.Gtk;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
-let nvidiaSwitch = 'optimus-manager --no-confirm --switch nvidia';
-let hybridSwitch = 'optimus-manager --no-confirm --switch hybrid';
-let intelSwitch = 'optimus-manager --no-confirm --switch intel';
-let notifySwitch = 'notify-send -h int:transient:2 -i \\\"dialog-information-symbolic\\\" \\\"Optimus Manager Indicator\\\" \\\"Switching graphics and restaring X server to finalize process! \\\" ; ';
-let nvidiaSettings = "nvidia-settings -p \'PRIME Profiles\'";
+let distroName = "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\"";
+let nvidiaSwitch = "optimus-manager --no-confirm --switch nvidia";
+let hybridSwitch = "optimus-manager --no-confirm --switch hybrid";
+let intelSwitch = "optimus-manager --no-confirm --switch intel";
+
+let switchCommandsDict = {
+  Arch: {
+    nvidiaSwitch: "optimus-manager --no-confirm --switch nvidia",
+    hybridSwitch: "optimus-manager --no-confirm --switch hybrid",
+    intelSwitch: "optimus-manager --no-confirm --switch intel",
+  },
+  Ubuntu: {
+    nvidiaSwitch: "prime-select nvidia",
+    hybridSwitch: "prime-select on-demand",
+    intelSwitch: "prime-select intel",
+  },
+};
+
+let notifySwitch =
+  'notify-send -h int:transient:2 -i \\"dialog-information-symbolic\\" \\"Optimus Manager Indicator\\" \\"Switching graphics and restaring X server to finalize process! \\" ; ';
+let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
 let panelTempText, timeout;
 
 var OptimusManagerDialog = GObject.registerClass(
   class OptimusManagerDialog extends ModalDialog.ModalDialog {
     _init(mode) {
       super._init({
-        styleClass: 'extension-dialog'
+        styleClass: "extension-dialog",
       });
       this._mode = mode;
 
-      this.setButtons([{
-        label: "No",
-        action: this._onNoButtonPressed.bind(this),
-        key: Clutter.Escape,
-      }, {
-        label: "Yes",
-        action: this._onYesButtonPressed.bind(this),
-        default: true,
-      }]);
+      this.setButtons([
+        {
+          label: "No",
+          action: this._onNoButtonPressed.bind(this),
+          key: Clutter.Escape,
+        },
+        {
+          label: "Yes",
+          action: this._onYesButtonPressed.bind(this),
+          default: true,
+        },
+      ]);
 
       let content = new Dialog.MessageDialogContent({
-        title: "Restart X server to switch on " + this._mode + "?"
-        //icon: new Gio.FileIcon({
-        //    file: Gio.File.new_for_uri(`${REPOSITORY_URL_BASE}${info.icon}`)
-        //})
+        title: "Restart X server to switch on " + this._mode + "?",
       });
 
       this.contentLayout.add(content);
@@ -71,49 +81,48 @@ var OptimusManagerDialog = GObject.registerClass(
 
     _onNoButtonPressed() {
       this.close();
-      this._invocation.return_value(GLib.Variant.new('(s)', ['cancelled']));
+      this._invocation.return_value(GLib.Variant.new("(s)", ["cancelled"]));
     }
 
     _onYesButtonPressed() {
       var switching = {
-        "Intel": intelSwitch,
-        "Hybrid": hybridSwitch,
-        "Nvidia": nvidiaSwitch
+        Intel: intelSwitch,
+        Hybrid: hybridSwitch,
+        Nvidia: nvidiaSwitch,
       };
       // var [ok, out, err, exit] = GLib.spawn_command_line_sync(notifySwitch);
-      var [ok, out, err, exit] = GLib.spawn_command_line_sync(switching[this._mode]);
+      var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+        switching[this._mode]
+      );
       this.close();
     }
-  });
+  }
+);
 /**
  * Behold the Optimus Manager Indicator Indicator class.
  */
 const OptimusManagerIndicator = new Lang.Class({
-  Name: 'OptimusManagerIndicator',
+  Name: "OptimusManagerIndicator",
   Extends: PanelMenu.Button,
 
-  _init: function() {
-    this.parent(0.0, 'OptimusManagerIndicator');
+  _init: function () {
+    this.parent(0.0, "OptimusManagerIndicator");
 
     /**
      * Construct the status icon and add it to the panel.
      */
     this.statusIcon = new St.Icon({
-      style_class: 'system-status-icon'
+      style_class: "system-status-icon",
     });
-    var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-      '/bin/bash -c "optimus-manager --print-mode | grep \'Current GPU mode\' | awk \'{print $5}\'"');
-    if (err =! ""){
-      this.gpu_mode = 'error'
-      this._setIcon(this.gpu_mode);
-    }
-    this.gpu_mode = ByteArray.toString(out).replace('\n', '');
-    this._setIcon(this.gpu_mode);
+
+    //this._detectDistro();
+
+    this._detectPrimeState();
 
     let topBox = new St.BoxLayout();
     panelTempText = new St.Label({
       y_align: Clutter.ActorAlign.CENTER,
-      text: ""
+      text: "",
     });
     topBox.add_actor(this.statusIcon);
     topBox.add_actor(panelTempText);
@@ -123,10 +132,30 @@ const OptimusManagerIndicator = new Lang.Class({
      * Create all menu items.
      */
 
-    this.nvidiaProfiles = new PopupMenu.PopupImageMenuItem("NVIDIA PRIME Profiles", Gio.icon_new_for_string(Me.path + '/icons/primeindicatornvidiasymbolic.svg'));
-    this.switchIntel = new PopupMenu.PopupImageMenuItem("Switch to INTEL", Gio.icon_new_for_string(Me.path + '/icons/primeindicatorintelsymbolic.svg'));
-    this.switchHybrid = new PopupMenu.PopupImageMenuItem("Switch to HYBRID", Gio.icon_new_for_string(Me.path + '/icons/primeindicatorhybridsymbolic.svg'));
-    this.switchNvidia = new PopupMenu.PopupImageMenuItem("Switch to NVIDIA", Gio.icon_new_for_string(Me.path + '/icons/primeindicatornvidiasymbolic.svg'));
+    this.nvidiaProfiles = new PopupMenu.PopupImageMenuItem(
+      "NVIDIA PRIME Profiles",
+      Gio.icon_new_for_string(
+        Me.path + "/icons/primeindicatornvidiasymbolic.svg"
+      )
+    );
+    this.switchIntel = new PopupMenu.PopupImageMenuItem(
+      "Switch to INTEL",
+      Gio.icon_new_for_string(
+        Me.path + "/icons/primeindicatorintelsymbolic.svg"
+      )
+    );
+    this.switchHybrid = new PopupMenu.PopupImageMenuItem(
+      "Switch to HYBRID",
+      Gio.icon_new_for_string(
+        Me.path + "/icons/primeindicatorhybridsymbolic.svg"
+      )
+    );
+    this.switchNvidia = new PopupMenu.PopupImageMenuItem(
+      "Switch to NVIDIA",
+      Gio.icon_new_for_string(
+        Me.path + "/icons/primeindicatornvidiasymbolic.svg"
+      )
+    );
     /**
      * Add the menu items and some separators to the popup menu.
      */
@@ -139,45 +168,114 @@ const OptimusManagerIndicator = new Lang.Class({
     /**
      * Connect some actions to the menu items.
      */
-    this.nvidiaProfiles.connect('activate', Lang.bind(this, function() {
-      var res = GLib.spawn_command_line_async(nvidiaSettings);
-    }));
-    this.switchIntel.connect('activate', Lang.bind(this, function() {
-      let dialog = new OptimusManagerDialog("Intel");
-      dialog.open(global.get_current_time());
-    }));
-    this.switchHybrid.connect('activate', Lang.bind(this, function() {
-      let dialog = new OptimusManagerDialog("Hybrid");
-      dialog.open(global.get_current_time());
-    }));
-    this.switchNvidia.connect('activate', Lang.bind(this, function() {
-      let dialog = new OptimusManagerDialog("Nvidia");
-      dialog.open(global.get_current_time());
-    }));
+    this.nvidiaProfiles.connect(
+      "activate",
+      Lang.bind(this, function () {
+        var res = GLib.spawn_command_line_async(nvidiaSettings);
+      })
+    );
+    this.switchIntel.connect(
+      "activate",
+      Lang.bind(this, function () {
+        let dialog = new OptimusManagerDialog("Intel");
+        dialog.open(global.get_current_time());
+      })
+    );
+    this.switchHybrid.connect(
+      "activate",
+      Lang.bind(this, function () {
+        let dialog = new OptimusManagerDialog("Hybrid");
+        dialog.open(global.get_current_time());
+      })
+    );
+    this.switchNvidia.connect(
+      "activate",
+      Lang.bind(this, function () {
+        let dialog = new OptimusManagerDialog("Nvidia");
+        dialog.open(global.get_current_time());
+      })
+    );
     this._setMode(this.gpu_mode);
   },
   /**
    * This function shows or hides the indicator.
    */
-  _setIndicatorVisibility: function(visible) {
+  _setIndicatorVisibility: function (visible) {
     this.visible = visible;
   },
   /**
    * This function saves the current mode and makes calls to set both the icon and menu into the requested mode.
    */
-  _setMode: function(mode) {
+  _setMode: function (mode) {
     this._setTempMode(mode);
     this._setMenuMode(mode);
 
     this.mode = mode;
   },
+  /**
+   * This function would check the optimus manager status
+   */
+  _detectPrimeState: function () {
+    let settings = getSettings();
+    let forcedMode = settings.get_boolean("always-show-gpu-temperature");
+    if (forcedMode) {
+      this.gpu_mode = "forced";
+      this._setIcon("nvidia");
+    } else {
+      var [
+        ok,
+        optimusManagerOut,
+        optimusManagerErr,
+        exit,
+      ] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
+      );
+      var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
+      );
+      if (optimusManagerErr == "" && optimusManagerOut != "") {
+        this.gpu_mode = ByteArray.toString(optimusManagerOut).replace("\n", "");
+        this._setIcon(this.gpu_mode);
+      } else if (optimusManagerErr != "" && nvidiaSmiOut != "") {
+        this.gpu_mode = "nvidia";
+        this._setIcon(this.gpu_mode);
+      } else {
+        this.gpu_mode = "error";
+        this._setIcon(this.gpu_mode);
+      }
+    }
+  },
+  /**
+   * This function would define the correct commands to switch depending if is Ubuntu or Arch.
+   */
+  _detectDistro: function () {
+    var switchCommandsDict = {
+      Arch: {
+        nvidiaSwitch: "optimus-manager --no-confirm --switch nvidia",
+        hybridSwitch: "optimus-manager --no-confirm --switch hybrid",
+        intelSwitch: "optimus-manager --no-confirm --switch intel",
+      },
+      Ubuntu: {
+        nvidiaSwitch: "prime-select nvidia",
+        hybridSwitch: "prime-select on-demand",
+        intelSwitch: "prime-select intel",
+      },
+    };
+    var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
+      "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\""
+    );
+    console.log(distroOut + "" + distroErr);
+    this.nvidiaSwitch = switchCommandsDict[distroOut]["nvidiaSwitch"];
+    this.hybridSwitch = switchCommandsDict[distroOut]["hybridSwitch"];
+    this.intelSwitch = switchCommandsDict[distroOut]["intelSwitch"];
+  },
 
   /**
    * This function makes every menu item reflect the current mode Optimus Manager Indicator is in.
    */
-  _setMenuMode: function(mode) {
+  _setMenuMode: function (mode) {
     switch (mode) {
-      case 'intel':
+      case "intel":
         this.nvidiaProfiles.visible = false;
         this.nvidiaProfiles.setSensitive(false);
         this.switchIntel.visible = false;
@@ -188,7 +286,7 @@ const OptimusManagerIndicator = new Lang.Class({
         this.switchNvidia.setSensitive(true);
         break;
 
-      case 'hybrid':
+      case "hybrid":
         this.nvidiaProfiles.visible = true;
         this.nvidiaProfiles.setSensitive(true);
         this.switchIntel.visible = true;
@@ -199,7 +297,7 @@ const OptimusManagerIndicator = new Lang.Class({
         this.switchNvidia.setSensitive(true);
         break;
 
-      case 'nvidia':
+      case "nvidia":
         this.nvidiaProfiles.visible = true;
         this.nvidiaProfiles.setSensitive(true);
         this.switchIntel.visible = true;
@@ -208,6 +306,17 @@ const OptimusManagerIndicator = new Lang.Class({
         this.switchHybrid.setSensitive(true);
         this.switchNvidia.visible = false;
         this.switchNvidia.setSensitive(false);
+        break;
+
+      case "forced":
+        this.nvidiaProfiles.visible = true;
+        this.nvidiaProfiles.setSensitive(true);
+        this.switchIntel.visible = true;
+        this.switchIntel.setSensitive(true);
+        this.switchHybrid.visible = true;
+        this.switchHybrid.setSensitive(true);
+        this.switchNvidia.visible = true;
+        this.switchNvidia.setSensitive(true);
         break;
 
       default:
@@ -228,42 +337,55 @@ const OptimusManagerIndicator = new Lang.Class({
   /**
    * This function makes the status icon reflect the current mode Optimus Manager Indicator is in.
    */
-  _setTempMode: function(mode) {
-
+  _setTempMode: function (mode) {
     switch (mode) {
-      case 'intel':
+      case "intel":
         break;
 
-      case 'hybrid':
+      case "hybrid":
         timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
         break;
 
-      case 'nvidia':
+      case "on-demand":
+        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
+        break;
+
+      case "nvidia":
+        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
+        break;
+
+      case "forced":
         timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
         break;
 
       default:
         break;
     }
-
   },
 
   /**
    * This function sets the status icon.
    */
-  _setIcon: function(iconName) {
-    if(iconName == 'error'){
+  _setIcon: function (iconName) {
+    if (iconName == "error") {
       this.iconName = iconName;
-      this.statusIcon = new St.Icon({ icon_name: 'action-unavailable-symbolic.symbolic', style_class: 'system-status-icon' });
+      this.statusIcon = new St.Icon({
+        icon_name: "action-unavailable-symbolic.symbolic",
+        style_class: "system-status-icon",
+      });
     }
     this.iconName = iconName;
-    this.statusIcon.gicon = Gio.icon_new_for_string(Me.path + '/icons/primeindicator' + iconName + 'symbolic.svg');
+    this.statusIcon.gicon = Gio.icon_new_for_string(
+      Me.path + "/icons/primeindicator" + iconName + "symbolic.svg"
+    );
   },
-  _setTemp: function() {
-    var [ok, out, err, exit] = GLib.spawn_command_line_sync('/bin/bash -c "nvidia-smi -q -d TEMPERATURE | grep \'GPU Current Temp\' | awk \'{print $5}\'"');
-    panelTempText.set_text(ByteArray.toString(out).replace('\n', '') + "°C");
+  _setTemp: function () {
+    var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+      "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
+    );
+    panelTempText.set_text(ByteArray.toString(out).replace("\n", "") + "°C");
     return true;
-  }
+  },
 });
 
 /**
@@ -276,7 +398,10 @@ let optimusManagerIndicator;
  */
 function enable() {
   optimusManagerIndicator = new OptimusManagerIndicator();
-  Main.panel.addToStatusArea('optimus-manager-indicator', optimusManagerIndicator);
+  Main.panel.addToStatusArea(
+    "optimus-manager-indicator",
+    optimusManagerIndicator
+  );
 }
 
 /**
@@ -286,4 +411,21 @@ function disable() {
   Mainloop.source_remove(timeout);
   optimusManagerIndicator.destroy();
   panelTempText.destroy();
+}
+
+function getSettings() {
+  let GioSSS = Gio.SettingsSchemaSource;
+  let schemaSource = GioSSS.new_from_directory(
+    Me.dir.get_child("schemas").get_path(),
+    GioSSS.get_default(),
+    false
+  );
+  let schemaObj = schemaSource.lookup(
+    "org.gnome.shell.extensions.optimus-manager-indicator",
+    true
+  );
+  if (!schemaObj) {
+    throw new Error("Cannot find schemas");
+  }
+  return new Gio.Settings({ settings_schema: schemaObj });
 }

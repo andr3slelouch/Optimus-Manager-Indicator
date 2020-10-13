@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.optimus-manager-indicator"
+        path="/org/gnome/shell/extensions/optimus-manager-indicator/">
+        <key type="b" name="always-show-gpu-temperature">
+            <default>false</default>
+            <summary>Flag to control if temperature is always displayed</summary>
+            <description>If Optimus Manager is not available you would force to show GPU temperature even if some capabilities are not available</description>
+        </key>
+    </schema>
+</schemalist>
