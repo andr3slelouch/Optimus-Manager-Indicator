@@ -11,6 +11,7 @@ function buildPrefsWidget() {
   );
 
   let grid = new Gtk.Grid({
+    margin: 12,
     column_spacing: 12,
     row_spacing: 12,
     halign: Gtk.Align.CENTER,
@@ -44,5 +45,6 @@ function buildPrefsWidget() {
     settings.set_boolean("always-show-gpu-temperature", field.get_state());
   });
 
+  grid.show_all();
   return grid;
 }
