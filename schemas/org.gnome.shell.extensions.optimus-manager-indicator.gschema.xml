@@ -7,5 +7,10 @@
             <summary>Flag to control if temperature is always displayed</summary>
             <description>If Optimus Manager is not available you would force to show GPU temperature even if some capabilities are not available</description>
         </key>
+        <key type="b" name="dynamic-hybrid-icon">
+            <default>false</default>
+            <summary>Flag to control if the icon in hybrid mode would be static or not</summary>
+            <description>If the flag is true and GPU and Memory utilization are in 0% intel icon would be set if they are greater than 0% nvidia icon would be set</description>
+        </key>
     </schema>
 </schemalist>
