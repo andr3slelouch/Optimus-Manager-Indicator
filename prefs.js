@@ -15,11 +15,23 @@ function buildPrefsWidget() {
     halign: Gtk.Align.CENTER,
   });
   let alwaysGpuTempLbl = new Gtk.Label({
-    label: "Always show GPU Temperature",
+    label: "Always show GPU Temperature, even if Optimus Manager is unavailable",
     halign: Gtk.Align.START,
   });
   let dynamicHybridLbl = new Gtk.Label({
     label: "Dynamic icon behaviour in hybrid mode, nvidia icon only if gpu is in use",
+    halign: Gtk.Align.START,
+  });
+  let showGPUTempLbl = new Gtk.Label({
+    label: "Show GPU Temperature",
+    halign: Gtk.Align.START,
+  });
+  let showGPUUtilizationLbl = new Gtk.Label({
+    label: "Show GPU Utilization",
+    halign: Gtk.Align.START,
+  });
+  let showGPUMemoryUtilizationLbl = new Gtk.Label({
+    label: "Show GPU Memory Utilization",
     halign: Gtk.Align.START,
   });
   let restartGShellLbl = new Gtk.Label({
@@ -29,6 +41,9 @@ function buildPrefsWidget() {
 
   let alwaysGpuTempSw = new Gtk.Switch();
   let dynamicHybridSw = new Gtk.Switch();
+  let showGPUTempSw = new Gtk.Switch();
+  let showGPUUtilizationSw = new Gtk.Switch();
+  let showGPUMemoryUtilizationSw = new Gtk.Switch();
 
   let saveButton = new Gtk.Button({
     label: " Save Changes ",
@@ -37,17 +52,30 @@ function buildPrefsWidget() {
   
   grid.attach(alwaysGpuTempLbl, 0, 0, 1, 1);
   grid.attach(dynamicHybridLbl, 0, 1, 1, 1);
-  grid.attach(restartGShellLbl, 0, 2, 1, 1);
+  grid.attach(showGPUTempLbl, 0, 2, 1, 1);
+  grid.attach(showGPUUtilizationLbl, 0, 3, 1, 1);
+  grid.attach(showGPUMemoryUtilizationLbl, 0, 4, 1, 1);
+  grid.attach(restartGShellLbl, 0, 5, 1, 1);
   grid.attach(alwaysGpuTempSw, 1, 0, 1, 1);
   grid.attach(dynamicHybridSw, 1, 1, 1, 1);
+  grid.attach(showGPUTempSw, 1, 2, 1, 1);
+  grid.attach(showGPUUtilizationSw, 1, 3, 1, 1);
+  grid.attach(showGPUMemoryUtilizationSw, 1, 4, 1, 1);
+  grid.attach(restartGShellLbl, 0, 5, 1, 1);
   grid.attach(saveButton, 1, 50, 1, 1);
 
-  alwaysGpuTempSw.set_state(settings.get_boolean("always-show-gpu-temperature"));
-  dynamicHybridSw.set_state(settings.get_boolean("dynamic-hybrid-icon"))
+  alwaysGpuTempSw.set_state(settings.get_boolean("forced-mode"));
+  dynamicHybridSw.set_state(settings.get_boolean("dynamic-hybrid-icon"));
+  showGPUTempSw.set_state(settings.get_boolean("show-gpu-temperature"));
+  showGPUUtilizationSw.set_state(settings.get_boolean("show-gpu-utilization"));
+  showGPUMemoryUtilizationSw.set_state(settings.get_boolean("show-gpu-memory-utilization"));
 
   saveButton.connect("clicked", (button) => {
-    settings.set_boolean("always-show-gpu-temperature", alwaysGpuTempSw.get_state());
+    settings.set_boolean("forced-mode", alwaysGpuTempSw.get_state());
     settings.set_boolean("dynamic-hybrid-icon", dynamicHybridSw.get_state());
+    settings.set_boolean("show-gpu-temperature",showGPUTempSw.get_state());
+    settings.set_boolean("show-gpu-utilization",showGPUUtilizationSw.get_state());
+    settings.set_boolean("show-gpu-memory-utilization",showGPUMemoryUtilizationSw.get_state());
   });
 
   return grid;

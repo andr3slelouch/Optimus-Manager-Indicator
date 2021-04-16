@@ -46,7 +46,7 @@ let switchCommandsDict = {
 let notifySwitch =
   'notify-send -h int:transient:2 -i \\"dialog-information-symbolic\\" \\"Optimus Manager Indicator\\" \\"Switching graphics and restaring X server to finalize process! \\" ; ';
 let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
-let panelTempText, timeout, statusIcon;
+let panelTempText, timeout, statusIcon, panelGpuUtilizationText,panelGpuMemoryText;
 
 const OptimusManagerDialog = new Lang.Class({
   Name: "OptimusManagerDialog",
@@ -110,7 +110,7 @@ const OptimusManagerIndicator = new Lang.Class({
   * This function sets the status icon.
   */
   _setIcon: function (iconName) {
-      if (iconName == "error") {
+      if (iconName === "error") {
         this.iconName = iconName;
         statusIcon = new St.Icon({
           icon_name: "action-unavailable-symbolic.symbolic",
@@ -128,25 +128,63 @@ const OptimusManagerIndicator = new Lang.Class({
   _init: function () {
     this.parent(0.0, "OptimusManagerIndicator");
 
+    //this._detectDistro();
+
     /**
      * Construct the status icon and add it to the panel.
      */
     statusIcon = new St.Icon({
       style_class: "system-status-icon",
     });
-
-    //this._detectDistro();
-
-    this._detectPrimeState();
-
-    topBox = new St.BoxLayout({ vertical: false, style_class: 'panel-status-menu-box' });
     panelTempText = new St.Label({
       y_expand: true,
       y_align: Clutter.ActorAlign.CENTER,
       text: "",
     });
+    panelGpuUtilizationText = new St.Label({
+      y_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      text: "",
+    });
+    panelGpuMemoryText = new St.Label({
+      y_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      text: "",
+    });
+    this._detectPrimeState();
+
+    let settings = getSettings();
+    let forcedMode = settings.get_boolean("forced-mode");
+    let showGPUTemp = settings.get_boolean("show-gpu-temperature");
+    let showGPUUtilization = settings.get_boolean("show-gpu-utilization");
+    let showGPUMemoryUtilization = settings.get_boolean("show-gpu-memory-utilization");
+
+    topBox = new St.BoxLayout({ vertical: false, style_class: 'panel-status-menu-box' });
     topBox.add_child(statusIcon);
-    topBox.add_child(panelTempText);
+    if (forcedMode || showGPUTemp){
+      topBox.add_child(panelTempText);
+    }
+    if (showGPUUtilization){
+      let gpuUtilizationIcon = new St.Icon({
+        style_class: "system-status-icon",
+      });
+      gpuUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/card-symbolic.svg"
+      );
+      topBox.add_child(gpuUtilizationIcon);
+      topBox.add_child(panelGpuUtilizationText);
+    }
+    if (showGPUMemoryUtilization){
+      let gpuMemoryUtilizationIcon = new St.Icon({
+        style_class: "system-status-icon",
+      });
+      gpuMemoryUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/ram-symbolic.svg"
+      );
+      topBox.add_child(gpuMemoryUtilizationIcon);
+      topBox.add_child(panelGpuMemoryText);
+    }
+
     this.add_child(topBox);
 
     /**
@@ -238,7 +276,7 @@ const OptimusManagerIndicator = new Lang.Class({
    */
   _detectPrimeState: function () {
     let settings = getSettings();
-    let forcedMode = settings.get_boolean("always-show-gpu-temperature");
+    let forcedMode = settings.get_boolean("forced-mode");
     let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
     if (forcedMode) {
       this.gpu_mode = "forced";
@@ -265,17 +303,17 @@ const OptimusManagerIndicator = new Lang.Class({
       gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
       gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
       optimusManagerErr= ByteArray.toString(optimusManagerErr).replace("\n", "");
-      if (optimusManagerErr == "" && optimusManagerOut != "" && optimusManagerOut != "hybrid") {
+      if (optimusManagerErr === "" && optimusManagerOut !== "" && optimusManagerOut !== "hybrid") {
         this.gpu_mode = optimusManagerOut;
         this._setIcon(this.gpu_mode);
-      } else if(optimusManagerErr == "" && optimusManagerOut == "hybrid" && dynamicHybridMode){
+      } else if(optimusManagerErr === "" && optimusManagerOut === "hybrid" && dynamicHybridMode){
         this.gpu_mode = "hybrid";
-        if (gpuUtilization == "0" && gpuMemUtilization == "0"){
+        if (gpuUtilization === "0" && gpuMemUtilization === "0"){
           this._setIcon("intel");
         }else{
           this._setIcon("nvidia");
         }
-      } else if (optimusManagerErr != "" && nvidiaSmiOut != "") {
+      } else if (optimusManagerErr !== "" && nvidiaSmiOut !== "") {
         this.gpu_mode = "nvidia";
         this._setIcon(this.gpu_mode);
       } else {
@@ -400,25 +438,15 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
     }
   },
-  _setIconLoop: function(){
-    var [ok, gpuUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Gpu' | awk '{print $3}'\""
-    );
-    var [ok, gpuMemUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
-    );
-    let mode = "";
-    gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
-    gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
-    if (gpuUtilization==="0" && gpuMemUtilization==="0"){
-      mode = "intel";
-    }else{
-      mode = "nvidia";
-    }
-    this._setIcon(mode);
-    return true;
-  },
   _setTemp: function () {
+    var [
+      ok,
+      optimusManagerOut,
+      optimusManagerErr,
+      exit,
+    ] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
+    );
     var [ok, out, err, exit] = GLib.spawn_command_line_sync(
       "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
     );
@@ -429,18 +457,23 @@ const OptimusManagerIndicator = new Lang.Class({
       "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
     );
     let mode = "";
-    out = ByteArray.toString(out).replace("\n", "");
+    optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
     gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
     gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
-    if (gpuUtilization==="0" && gpuMemUtilization==="0"){
-      mode = "intel";
-    }else{
-      mode = "nvidia";
+    out = ByteArray.toString(out).replace("\n", "");
+    panelTempText.set_text(out + "°C");
+    panelGpuUtilizationText.set_text(gpuUtilization+"%");
+    panelGpuMemoryText.set_text(gpuMemUtilization+"%");
+    if(optimusManagerOut === "hybrid"){
+      if (gpuUtilization==="0" && gpuMemUtilization==="0"){
+        mode = "intel";
+      }else{
+        mode = "nvidia";
+      }
+      statusIcon.set_gicon(Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/primeindicator" + mode + "symbolic.svg"
+      ));
     }
-    panelTempText.set_text(out + "°C|U:"+gpuUtilization+"%|M:"+gpuMemUtilization+"%");
-    statusIcon.set_gicon(Gio.icon_new_for_string(
-        Me.dir.get_child('icons').get_path() + "/primeindicator" + mode + "symbolic.svg"
-    ));
     return true;
   },
 });

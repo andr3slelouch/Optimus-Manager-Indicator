@@ -2,15 +2,30 @@
 <schemalist>
     <schema id="org.gnome.shell.extensions.optimus-manager-indicator"
         path="/org/gnome/shell/extensions/optimus-manager-indicator/">
-        <key type="b" name="always-show-gpu-temperature">
+        <key type="b" name="forced-mode">
             <default>false</default>
             <summary>Flag to control if temperature is always displayed</summary>
-            <description>If Optimus Manager is not available you would force to show GPU temperature even if some capabilities are not available</description>
+            <description>If Optimus Manager is not available you could force the extension to show GPU temperature even if some capabilities are not available</description>
         </key>
         <key type="b" name="dynamic-hybrid-icon">
             <default>false</default>
             <summary>Flag to control if the icon in hybrid mode would be static or not</summary>
             <description>If the flag is true and GPU and Memory utilization are in 0% intel icon would be set if they are greater than 0% nvidia icon would be set</description>
+        </key>
+        <key type="b" name="show-gpu-temperature">
+            <default>true</default>
+            <summary>Flag to control if the GPU temperature is displayed</summary>
+            <description>If the flag is true the GPU Temperature would be displayed in the panel</description>
+        </key>
+        <key type="b" name="show-gpu-utilization">
+            <default>false</default>
+            <summary>Flag to control if the GPU utilization is displayed</summary>
+            <description>If the flag is true the GPU utilization icon and current state would be displayed in the panel</description>
+        </key>
+        <key type="b" name="show-gpu-memory-utilization">
+            <default>false</default>
+            <summary>Flag to control if the GPU Memory utilization is displayed</summary>
+            <description>If the flag is true the GPU Memory utilization icon and current state would be displayed in the panel</description>
         </key>
     </schema>
 </schemalist>
