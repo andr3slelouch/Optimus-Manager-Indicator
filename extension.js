@@ -151,6 +151,7 @@ const OptimusManagerIndicator = new Lang.Class({
       y_align: Clutter.ActorAlign.CENTER,
       text: "",
     });
+
     this._detectPrimeState();
 
     let settings = getSettings();
@@ -269,7 +270,7 @@ const OptimusManagerIndicator = new Lang.Class({
     this._setTempMode(mode);
     this._setMenuMode(mode);
 
-    this.mode = mode;
+    this.gpu_mode = mode;
   },
   /**
    * This function would check the optimus manager status
@@ -303,16 +304,12 @@ const OptimusManagerIndicator = new Lang.Class({
       gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
       gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
       optimusManagerErr= ByteArray.toString(optimusManagerErr).replace("\n", "");
-      if (optimusManagerErr === "" && optimusManagerOut !== "" && optimusManagerOut !== "hybrid") {
+      if(optimusManagerOut === "integrated"){
+        optimusManagerOut = "intel";
+      }
+      if (optimusManagerErr === "" && optimusManagerOut !== "") {
         this.gpu_mode = optimusManagerOut;
         this._setIcon(this.gpu_mode);
-      } else if(optimusManagerErr === "" && optimusManagerOut === "hybrid" && dynamicHybridMode){
-        this.gpu_mode = "hybrid";
-        if (gpuUtilization === "0" && gpuMemUtilization === "0"){
-          this._setIcon("intel");
-        }else{
-          this._setIcon("nvidia");
-        }
       } else if (optimusManagerErr !== "" && nvidiaSmiOut !== "") {
         this.gpu_mode = "nvidia";
         this._setIcon(this.gpu_mode);
@@ -439,6 +436,8 @@ const OptimusManagerIndicator = new Lang.Class({
     }
   },
   _setTemp: function () {
+    let settings = getSettings();
+    let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
     var [
       ok,
       optimusManagerOut,
@@ -464,7 +463,7 @@ const OptimusManagerIndicator = new Lang.Class({
     panelTempText.set_text(out + "°C");
     panelGpuUtilizationText.set_text(gpuUtilization+"%");
     panelGpuMemoryText.set_text(gpuMemUtilization+"%");
-    if(optimusManagerOut === "hybrid"){
+    if(optimusManagerOut === "hybrid" && dynamicHybridMode){
       if (gpuUtilization==="0" && gpuMemUtilization==="0"){
         mode = "intel";
       }else{
@@ -501,6 +500,8 @@ function disable() {
   Mainloop.source_remove(timeout);
   optimusManagerIndicator.destroy();
   panelTempText.destroy();
+  panelGpuUtilizationText.destroy();
+  panelGpuMemoryText.destroy();
 }
 
 function getSettings() {
