@@ -57,6 +57,7 @@ const OptimusManagerDialog = new Lang.Class({
         styleClass: "extension-dialog",
       });
       this._mode = mode;
+      this._switching = {};
 
       this.setButtons([
         {
@@ -84,19 +85,49 @@ const OptimusManagerDialog = new Lang.Class({
     },
 
     _onYesButtonPressed: function() {
-      var switching = {
-        Intel: intelSwitch,
-        Hybrid: hybridSwitch,
-        Nvidia: nvidiaSwitch,
+      log(this._switching);
+      if (this._switching["distro"] == "arch" || this._switching["distro"] == "manjaro"){
+        var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+          "prime-offload"
+        );
+        var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+          this._switching[this._mode]
+        );
+      }else if (this._switching["distro"] == "ubuntu"){
+        var [ok, out, err, exit] = GLib.spawn_command_line_async(
+          "pkexec "+this._switching[this._mode]
+        );
+      }
+    },
+    /**
+    * This function would define the correct commands to switch depending if is Ubuntu or Arch.
+    */
+    _detectDistro: function () {
+      var switchCommandsDict = {
+        arch: {
+          nvidia: "optimus-manager --no-confirm --switch nvidia",
+          hybrid: "optimus-manager --no-confirm --switch hybrid",
+          intel: "optimus-manager --no-confirm --switch intel",
+          distro: "arch",
+        },
+        manjaro: {
+          nvidia: "optimus-manager --no-confirm --switch nvidia",
+          hybrid: "optimus-manager --no-confirm --switch hybrid",
+          intel: "optimus-manager --no-confirm --switch intel",
+          distro: "arch",
+        },
+        ubuntu: {
+          nvidia: "sudo prime-select nvidia",
+          hybrid: "sudo prime-select on-demand",
+          intel: "sudo prime-select intel",
+          distro: "ubuntu",
+        },
       };
-      // var [ok, out, err, exit] = GLib.spawn_command_line_sync(notifySwitch);
-      var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-        "prime-offload"
+      var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"cat /etc/os-release | head -3 |grep 'ID' | awk -F= '{print $2}'\""
       );
-      var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-        switching[this._mode]
-      );
-      this.close();
+      distroOut = ByteArray.toString(distroOut).replace("\n", "");
+      this._switching = switchCommandsDict[distroOut];
     },
   });
 /**
@@ -237,21 +268,21 @@ const OptimusManagerIndicator = new Lang.Class({
     this.switchIntel.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Intel");
+        let dialog = new OptimusManagerDialog("intel");
         dialog.open(global.get_current_time());
       })
     );
     this.switchHybrid.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Hybrid");
+        let dialog = new OptimusManagerDialog("hybrid");
         dialog.open(global.get_current_time());
       })
     );
     this.switchNvidia.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Nvidia");
+        let dialog = new OptimusManagerDialog("nvidia");
         dialog.open(global.get_current_time());
       })
     );
@@ -278,36 +309,35 @@ const OptimusManagerIndicator = new Lang.Class({
   _detectPrimeState: function () {
     let settings = getSettings();
     let forcedMode = settings.get_boolean("forced-mode");
-    let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
     if (forcedMode) {
       this.gpu_mode = "forced";
       this._setIcon("nvidia");
     } else {
-      var [
-        ok,
-        optimusManagerOut,
-        optimusManagerErr,
-        exit,
-      ] = GLib.spawn_command_line_sync(
+      var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
       );
       var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
       );
-      var [ok, gpuUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-        "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Gpu' | awk '{print $3}'\""
-      );
-      var [ok, gpuMemUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-        "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
-      );
+      
       optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
-      gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
-      gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
-      optimusManagerErr= ByteArray.toString(optimusManagerErr).replace("\n", "");
+      optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+
+      if(optimusManagerErr!==""){
+        var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
+          "/bin/bash -c \"prime-select query\""
+        );
+        optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+        optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+      }
+
       if(optimusManagerOut === "integrated"){
         optimusManagerOut = "intel";
+      }else if(optimusManagerOut === "on-demand"){
+        optimusManagerOut = "hybrid";
       }
-      if (optimusManagerErr === "" && optimusManagerOut !== "") {
+      
+      if (optimusManagerErr==="" && optimusManagerOut !== "") {
         this.gpu_mode = optimusManagerOut;
         this._setIcon(this.gpu_mode);
       } else if (optimusManagerErr !== "" && nvidiaSmiOut !== "") {
@@ -319,31 +349,6 @@ const OptimusManagerIndicator = new Lang.Class({
       }
     }
   },
-  /**
-   * This function would define the correct commands to switch depending if is Ubuntu or Arch.
-   */
-  _detectDistro: function () {
-    var switchCommandsDict = {
-      Arch: {
-        nvidiaSwitch: "optimus-manager --no-confirm --switch nvidia",
-        hybridSwitch: "optimus-manager --no-confirm --switch hybrid",
-        intelSwitch: "optimus-manager --no-confirm --switch intel",
-      },
-      Ubuntu: {
-        nvidiaSwitch: "prime-select nvidia",
-        hybridSwitch: "prime-select on-demand",
-        intelSwitch: "prime-select intel",
-      },
-    };
-    var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\""
-    );
-    console.log(distroOut + "" + distroErr);
-    this.nvidiaSwitch = switchCommandsDict[distroOut]["nvidiaSwitch"];
-    this.hybridSwitch = switchCommandsDict[distroOut]["hybridSwitch"];
-    this.intelSwitch = switchCommandsDict[distroOut]["intelSwitch"];
-  },
-
   /**
    * This function makes every menu item reflect the current mode Optimus Manager Indicator is in.
    */
@@ -438,12 +443,7 @@ const OptimusManagerIndicator = new Lang.Class({
   _setTemp: function () {
     let settings = getSettings();
     let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
-    var [
-      ok,
-      optimusManagerOut,
-      optimusManagerErr,
-      exit,
-    ] = GLib.spawn_command_line_sync(
+    var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
     );
     var [ok, out, err, exit] = GLib.spawn_command_line_sync(
@@ -455,14 +455,32 @@ const OptimusManagerIndicator = new Lang.Class({
     var [ok, gpuMemUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
       "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
     );
+
     let mode = "";
+    
+    optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
     optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
     gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
     gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
     out = ByteArray.toString(out).replace("\n", "");
+    
     panelTempText.set_text(out + "°C");
     panelGpuUtilizationText.set_text(gpuUtilization+"%");
     panelGpuMemoryText.set_text(gpuMemUtilization+"%");
+
+    if(optimusManagerErr!==""){
+      var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"prime-select query\""
+      );
+      optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+    }
+
+    if(optimusManagerOut === "integrated"){
+      optimusManagerOut = "intel";
+    }else if(optimusManagerOut === "on-demand"){
+      optimusManagerOut = "hybrid";
+    }
+
     if(optimusManagerOut === "hybrid" && dynamicHybridMode){
       if (gpuUtilization==="0" && gpuMemUtilization==="0"){
         mode = "intel";
