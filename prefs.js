@@ -2,6 +2,9 @@ const GObject = imports.gi.GObject;
 const Gtk = imports.gi.Gtk;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const Config = imports.misc.config;
+const [major] = Config.PACKAGE_VERSION.split('.');
+const shellVersion = Number.parseInt(major);
 
 function init() {}
 
@@ -14,6 +17,15 @@ function buildPrefsWidget() {
     row_spacing: 12,
     halign: Gtk.Align.CENTER,
   });
+  if (shellVersion < 40){
+    let grid = new Gtk.Grid({
+      margin: 12,
+      column_spacing: 12,
+      row_spacing: 12,
+      halign: Gtk.Align.CENTER,
+    });  
+  }
+  
   let alwaysGpuTempLbl = new Gtk.Label({
     label: "Always show GPU Temperature, even if Optimus Manager is unavailable",
     halign: Gtk.Align.START,
@@ -35,7 +47,7 @@ function buildPrefsWidget() {
     halign: Gtk.Align.START,
   });
   let restartGShellLbl = new Gtk.Label({
-    label: "Restart Gnome Shell (alt + F2, type r and hit ENTER) to see the changes",
+    label: "Restart Gnome Shell "+shellVersion.toString() +" (alt + F2, type r and hit ENTER) to see the changes",
     halign: Gtk.Align.START,
   });
 
@@ -77,6 +89,8 @@ function buildPrefsWidget() {
     settings.set_boolean("show-gpu-utilization",showGPUUtilizationSw.get_state());
     settings.set_boolean("show-gpu-memory-utilization",showGPUMemoryUtilizationSw.get_state());
   });
-
+  if (shellVersion < 40){
+    grid.show_all();
+  }
   return grid;
 }
