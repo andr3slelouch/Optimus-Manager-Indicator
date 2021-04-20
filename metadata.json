@@ -3,6 +3,6 @@
   "description": "Intel/Hybrid/NVIDIA GPU Switch Note: The GPU mode activated doesn't show up in the options, by example: When you turn on the PC you are gonna be in Intel mode so Intel option is not gonna be shown. Note: Optimus Manager Indicator is made(for the moment) for Arch based distributions with optimus-manager.",
   "uuid": "optimus-manager-indicator@andr3slelouch.github.com",
   "shell-version": ["3.36", "3.38", "40.0"],
-  "version": 5,
+  "version": 6,
   "url": "https://github.com/andr3slelouch/Optimus-Manager-Indicator"
 }
