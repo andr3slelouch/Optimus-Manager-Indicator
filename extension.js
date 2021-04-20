@@ -46,7 +46,7 @@ let switchCommandsDict = {
 let notifySwitch =
   'notify-send -h int:transient:2 -i \\"dialog-information-symbolic\\" \\"Optimus Manager Indicator\\" \\"Switching graphics and restaring X server to finalize process! \\" ; ';
 let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
-let panelTempText, timeout;
+let panelTempText, timeout, statusIcon, panelGpuUtilizationText,panelGpuMemoryText;
 
 const OptimusManagerDialog = new Lang.Class({
   Name: "OptimusManagerDialog",
@@ -57,6 +57,7 @@ const OptimusManagerDialog = new Lang.Class({
         styleClass: "extension-dialog",
       });
       this._mode = mode;
+      this._switching = {};
 
       this.setButtons([
         {
@@ -84,19 +85,49 @@ const OptimusManagerDialog = new Lang.Class({
     },
 
     _onYesButtonPressed: function() {
-      var switching = {
-        Intel: intelSwitch,
-        Hybrid: hybridSwitch,
-        Nvidia: nvidiaSwitch,
+      log(this._switching);
+      if (this._switching["distro"] == "arch" || this._switching["distro"] == "manjaro"){
+        var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+          "prime-offload"
+        );
+        var [ok, out, err, exit] = GLib.spawn_command_line_sync(
+          this._switching[this._mode]
+        );
+      }else if (this._switching["distro"] == "ubuntu"){
+        var [ok, out, err, exit] = GLib.spawn_command_line_async(
+          "pkexec "+this._switching[this._mode]
+        );
+      }
+    },
+    /**
+    * This function would define the correct commands to switch depending if is Ubuntu or Arch.
+    */
+    _detectDistro: function () {
+      var switchCommandsDict = {
+        arch: {
+          nvidia: "optimus-manager --no-confirm --switch nvidia",
+          hybrid: "optimus-manager --no-confirm --switch hybrid",
+          intel: "optimus-manager --no-confirm --switch intel",
+          distro: "arch",
+        },
+        manjaro: {
+          nvidia: "optimus-manager --no-confirm --switch nvidia",
+          hybrid: "optimus-manager --no-confirm --switch hybrid",
+          intel: "optimus-manager --no-confirm --switch intel",
+          distro: "arch",
+        },
+        ubuntu: {
+          nvidia: "sudo prime-select nvidia",
+          hybrid: "sudo prime-select on-demand",
+          intel: "sudo prime-select intel",
+          distro: "ubuntu",
+        },
       };
-      // var [ok, out, err, exit] = GLib.spawn_command_line_sync(notifySwitch);
-      var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-        "prime-offload"
+      var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"cat /etc/os-release | head -3 |grep 'ID' | awk -F= '{print $2}'\""
       );
-      var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-        switching[this._mode]
-      );
-      this.close();
+      distroOut = ByteArray.toString(distroOut).replace("\n", "");
+      this._switching = switchCommandsDict[distroOut];
     },
   });
 /**
@@ -106,28 +137,86 @@ const OptimusManagerIndicator = new Lang.Class({
   Name: "OptimusManagerIndicator",
   Extends: PanelMenu.Button,
 
+  /**
+  * This function sets the status icon.
+  */
+  _setIcon: function (iconName) {
+      if (iconName === "error") {
+        this.iconName = iconName;
+        statusIcon = new St.Icon({
+          icon_name: "action-unavailable-symbolic.symbolic",
+          style_class: "system-status-icon",
+        });
+      }
+      this.iconName = iconName;
+      statusIcon.gicon = Gio.icon_new_for_string(
+        Me.dir.get_child('icons').get_path() + "/primeindicator" + iconName + "symbolic.svg"
+      );
+      statusIcon.set_gicon(Gio.icon_new_for_string(
+        Me.dir.get_child('icons').get_path() + "/primeindicator" + iconName + "symbolic.svg"
+      ));
+  },
   _init: function () {
     this.parent(0.0, "OptimusManagerIndicator");
+
+    //this._detectDistro();
 
     /**
      * Construct the status icon and add it to the panel.
      */
-    this.statusIcon = new St.Icon({
+    statusIcon = new St.Icon({
       style_class: "system-status-icon",
     });
-
-    //this._detectDistro();
-
-    this._detectPrimeState();
-
-    let topBox = new St.BoxLayout({ vertical: false, style_class: 'panel-status-menu-box' });
     panelTempText = new St.Label({
       y_expand: true,
       y_align: Clutter.ActorAlign.CENTER,
       text: "",
     });
-    topBox.add_child(this.statusIcon);
-    topBox.add_child(panelTempText);
+    panelGpuUtilizationText = new St.Label({
+      y_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      text: "",
+    });
+    panelGpuMemoryText = new St.Label({
+      y_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      text: "",
+    });
+
+    this._detectPrimeState();
+
+    let settings = getSettings();
+    let forcedMode = settings.get_boolean("forced-mode");
+    let showGPUTemp = settings.get_boolean("show-gpu-temperature");
+    let showGPUUtilization = settings.get_boolean("show-gpu-utilization");
+    let showGPUMemoryUtilization = settings.get_boolean("show-gpu-memory-utilization");
+
+    topBox = new St.BoxLayout({ vertical: false, style_class: 'panel-status-menu-box' });
+    topBox.add_child(statusIcon);
+    if (forcedMode || showGPUTemp){
+      topBox.add_child(panelTempText);
+    }
+    if (showGPUUtilization){
+      let gpuUtilizationIcon = new St.Icon({
+        style_class: "system-status-icon",
+      });
+      gpuUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/card-symbolic.svg"
+      );
+      topBox.add_child(gpuUtilizationIcon);
+      topBox.add_child(panelGpuUtilizationText);
+    }
+    if (showGPUMemoryUtilization){
+      let gpuMemoryUtilizationIcon = new St.Icon({
+        style_class: "system-status-icon",
+      });
+      gpuMemoryUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/ram-symbolic.svg"
+      );
+      topBox.add_child(gpuMemoryUtilizationIcon);
+      topBox.add_child(panelGpuMemoryText);
+    }
+
     this.add_child(topBox);
 
     /**
@@ -179,21 +268,21 @@ const OptimusManagerIndicator = new Lang.Class({
     this.switchIntel.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Intel");
+        let dialog = new OptimusManagerDialog("intel");
         dialog.open(global.get_current_time());
       })
     );
     this.switchHybrid.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Hybrid");
+        let dialog = new OptimusManagerDialog("hybrid");
         dialog.open(global.get_current_time());
       })
     );
     this.switchNvidia.connect(
       "activate",
       Lang.bind(this, function () {
-        let dialog = new OptimusManagerDialog("Nvidia");
+        let dialog = new OptimusManagerDialog("nvidia");
         dialog.open(global.get_current_time());
       })
     );
@@ -212,34 +301,46 @@ const OptimusManagerIndicator = new Lang.Class({
     this._setTempMode(mode);
     this._setMenuMode(mode);
 
-    this.mode = mode;
+    this.gpu_mode = mode;
   },
   /**
    * This function would check the optimus manager status
    */
   _detectPrimeState: function () {
-    //let settings = getSettings();
-    //let forcedMode = settings.get_boolean("always-show-gpu-temperature");
-    let forcedMode = false;
+    let settings = getSettings();
+    let forcedMode = settings.get_boolean("forced-mode");
     if (forcedMode) {
       this.gpu_mode = "forced";
       this._setIcon("nvidia");
     } else {
-      var [
-        ok,
-        optimusManagerOut,
-        optimusManagerErr,
-        exit,
-      ] = GLib.spawn_command_line_sync(
+      var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
       );
       var [ok, nvidiaSmiOut, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
       );
-      if (optimusManagerErr == "" && optimusManagerOut != "") {
-        this.gpu_mode = ByteArray.toString(optimusManagerOut).replace("\n", "");
+      
+      optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+      optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+
+      if(optimusManagerErr!==""){
+        var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
+          "/bin/bash -c \"prime-select query\""
+        );
+        optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+        optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+      }
+
+      if(optimusManagerOut === "integrated"){
+        optimusManagerOut = "intel";
+      }else if(optimusManagerOut === "on-demand"){
+        optimusManagerOut = "hybrid";
+      }
+      
+      if (optimusManagerErr==="" && optimusManagerOut !== "") {
+        this.gpu_mode = optimusManagerOut;
         this._setIcon(this.gpu_mode);
-      } else if (optimusManagerErr != "" && nvidiaSmiOut != "") {
+      } else if (optimusManagerErr !== "" && nvidiaSmiOut !== "") {
         this.gpu_mode = "nvidia";
         this._setIcon(this.gpu_mode);
       } else {
@@ -248,31 +349,6 @@ const OptimusManagerIndicator = new Lang.Class({
       }
     }
   },
-  /**
-   * This function would define the correct commands to switch depending if is Ubuntu or Arch.
-   */
-  _detectDistro: function () {
-    var switchCommandsDict = {
-      Arch: {
-        nvidiaSwitch: "optimus-manager --no-confirm --switch nvidia",
-        hybridSwitch: "optimus-manager --no-confirm --switch hybrid",
-        intelSwitch: "optimus-manager --no-confirm --switch intel",
-      },
-      Ubuntu: {
-        nvidiaSwitch: "prime-select nvidia",
-        hybridSwitch: "prime-select on-demand",
-        intelSwitch: "prime-select intel",
-      },
-    };
-    var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\""
-    );
-    console.log(distroOut + "" + distroErr);
-    this.nvidiaSwitch = switchCommandsDict[distroOut]["nvidiaSwitch"];
-    this.hybridSwitch = switchCommandsDict[distroOut]["hybridSwitch"];
-    this.intelSwitch = switchCommandsDict[distroOut]["intelSwitch"];
-  },
-
   /**
    * This function makes every menu item reflect the current mode Optimus Manager Indicator is in.
    */
@@ -336,7 +412,6 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
     }
   },
-
   /**
    * This function makes the status icon reflect the current mode Optimus Manager Indicator is in.
    */
@@ -365,28 +440,57 @@ const OptimusManagerIndicator = new Lang.Class({
         break;
     }
   },
-
-  /**
-   * This function sets the status icon.
-   */
-  _setIcon: function (iconName) {
-    if (iconName == "error") {
-      this.iconName = iconName;
-      this.statusIcon = new St.Icon({
-        icon_name: "action-unavailable-symbolic.symbolic",
-        style_class: "system-status-icon",
-      });
-    }
-    this.iconName = iconName;
-    this.statusIcon.gicon = Gio.icon_new_for_string(
-      Me.dir.get_child('icons').get_path() + "/primeindicator" + iconName + "symbolic.svg"
-    );
-  },
   _setTemp: function () {
+    let settings = getSettings();
+    let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
+    var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
+    );
     var [ok, out, err, exit] = GLib.spawn_command_line_sync(
       "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
     );
-    panelTempText.set_text(ByteArray.toString(out).replace("\n", "") + "°C");
+    var [ok, gpuUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
+      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Gpu' | awk '{print $3}'\""
+    );
+    var [ok, gpuMemUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
+      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
+    );
+
+    let mode = "";
+    
+    optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+    optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+    gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
+    gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
+    out = ByteArray.toString(out).replace("\n", "");
+    
+    panelTempText.set_text(out + "°C");
+    panelGpuUtilizationText.set_text(gpuUtilization+"%");
+    panelGpuMemoryText.set_text(gpuMemUtilization+"%");
+
+    if(optimusManagerErr!==""){
+      var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"prime-select query\""
+      );
+      optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
+    }
+
+    if(optimusManagerOut === "integrated"){
+      optimusManagerOut = "intel";
+    }else if(optimusManagerOut === "on-demand"){
+      optimusManagerOut = "hybrid";
+    }
+
+    if(optimusManagerOut === "hybrid" && dynamicHybridMode){
+      if (gpuUtilization==="0" && gpuMemUtilization==="0"){
+        mode = "intel";
+      }else{
+        mode = "nvidia";
+      }
+      statusIcon.set_gicon(Gio.icon_new_for_string(
+          Me.dir.get_child('icons').get_path() + "/primeindicator" + mode + "symbolic.svg"
+      ));
+    }
     return true;
   },
 });
@@ -414,6 +518,8 @@ function disable() {
   Mainloop.source_remove(timeout);
   optimusManagerIndicator.destroy();
   panelTempText.destroy();
+  panelGpuUtilizationText.destroy();
+  panelGpuMemoryText.destroy();
 }
 
 function getSettings() {
