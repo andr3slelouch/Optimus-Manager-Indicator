@@ -114,7 +114,7 @@ const OptimusManagerDialog = new Lang.Class({
           nvidia: "optimus-manager --no-confirm --switch nvidia",
           hybrid: "optimus-manager --no-confirm --switch hybrid",
           intel: "optimus-manager --no-confirm --switch intel",
-          distro: "arch",
+          distro: "manjaro",
         },
         ubuntu: {
           nvidia: "sudo prime-select nvidia",
