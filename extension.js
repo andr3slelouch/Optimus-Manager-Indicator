@@ -24,6 +24,14 @@ const PopupMenu = imports.ui.popupMenu;
 const ByteArray = imports.byteArray;
 const Gtk = imports.gi.Gtk;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const Gettext = imports.gettext;
+
+Gettext.bindtextdomain( "OptimusManagerIndicator", Me.dir.get_child('locale').get_path() );
+Gettext.textdomain("OptimusManagerIndicator");
+
+const _ = Gettext.gettext;
+
+log(_("Yes"));
 
 let distroName = "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\"";
 let nvidiaSwitch = "optimus-manager --no-confirm --switch nvidia";
@@ -61,19 +69,19 @@ const OptimusManagerDialog = new Lang.Class({
 
       this.setButtons([
         {
-          label: "No",
+          label: _("No"),
           action: this._onNoButtonPressed.bind(this),
           key: Clutter.Escape,
         },
         {
-          label: "Yes",
+          label: _("Yes"),
           action: this._onYesButtonPressed.bind(this),
           default: true,
         },
       ]);
 
       let content = new Dialog.MessageDialogContent({
-        title: "Restart X server to switch on " + this._mode + "?",
+        title: _("Restart X server to switch on ") + this._mode + "?",
       });
 
       this.contentLayout.add(content);
@@ -86,14 +94,14 @@ const OptimusManagerDialog = new Lang.Class({
 
     _onYesButtonPressed: function() {
       log(this._switching);
-      if (this._switching["distro"] == "arch" || this._switching["distro"] == "manjaro"){
+      if (this._switching["distro"] == "arch-based"){
         var [ok, out, err, exit] = GLib.spawn_command_line_sync(
           "prime-offload"
         );
         var [ok, out, err, exit] = GLib.spawn_command_line_sync(
           this._switching[this._mode]
         );
-      }else if (this._switching["distro"] == "ubuntu"){
+      }else if (this._switching["distro"] == "ubuntu-based"){
         var [ok, out, err, exit] = GLib.spawn_command_line_async(
           "pkexec "+this._switching[this._mode]
         );
@@ -104,30 +112,33 @@ const OptimusManagerDialog = new Lang.Class({
     */
     _detectDistro: function () {
       var switchCommandsDict = {
-        arch: {
+        archBased: {
           nvidia: "optimus-manager --no-confirm --switch nvidia",
           hybrid: "optimus-manager --no-confirm --switch hybrid",
           intel: "optimus-manager --no-confirm --switch intel",
-          distro: "arch",
+          distro: "arch-based",
         },
-        manjaro: {
-          nvidia: "optimus-manager --no-confirm --switch nvidia",
-          hybrid: "optimus-manager --no-confirm --switch hybrid",
-          intel: "optimus-manager --no-confirm --switch intel",
-          distro: "arch",
-        },
-        ubuntu: {
+        ubuntuBased: {
           nvidia: "sudo prime-select nvidia",
           hybrid: "sudo prime-select on-demand",
           intel: "sudo prime-select intel",
-          distro: "ubuntu",
+          distro: "ubuntu-based",
         },
       };
-      var [ok, distroOut, distroErr, exit] = GLib.spawn_command_line_sync(
-        "/bin/bash -c \"cat /etc/os-release | head -3 |grep 'ID' | awk -F= '{print $2}'\""
+      var [ok, detectOptimus, detectErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"whereis optimus-manager | awk -F: '{print $2}'\""
       );
-      distroOut = ByteArray.toString(distroOut).replace("\n", "");
-      this._switching = switchCommandsDict[distroOut];
+      var [ok, detectPrimeSelect, detectErr, exit] = GLib.spawn_command_line_sync(
+        "/bin/bash -c \"whereis prime-select | awk -F: '{print $2}'\""
+      );
+      detectOptimus = ByteArray.toString(detectOptimus).replace("\n", "");
+      detectPrimeSelect = ByteArray.toString(detectPrimeSelect).replace("\n", "");
+      if(detectOptimus !== ""){
+        this._switching = switchCommandsDict["archBased"];
+      }else if(detectPrimeSelect !== ""){
+        this._switching = switchCommandsDict["ubuntuBased"];
+      }
+      
     },
   });
 /**
@@ -224,25 +235,25 @@ const OptimusManagerIndicator = new Lang.Class({
      */
 
     this.nvidiaProfiles = new PopupMenu.PopupImageMenuItem(
-      "NVIDIA PRIME Profiles",
+      _("NVIDIA PRIME Profiles"),
       Gio.icon_new_for_string(
         Me.dir.get_child('icons').get_path() + "/primeindicatornvidiasymbolic.svg"
       )
     );
     this.switchIntel = new PopupMenu.PopupImageMenuItem(
-      "Switch to INTEL",
+      _("Switch to INTEL"),
       Gio.icon_new_for_string(
         Me.dir.get_child('icons').get_path() + "/primeindicatorintelsymbolic.svg"
       )
     );
     this.switchHybrid = new PopupMenu.PopupImageMenuItem(
-      "Switch to HYBRID",
+      _("Switch to HYBRID"),
       Gio.icon_new_for_string(
         Me.dir.get_child('icons').get_path() + "/primeindicatorhybridsymbolic.svg"
       )
     );
     this.switchNvidia = new PopupMenu.PopupImageMenuItem(
-      "Switch to NVIDIA",
+      _("Switch to NVIDIA"),
       Gio.icon_new_for_string(
         Me.dir.get_child('icons').get_path() + "/primeindicatornvidiasymbolic.svg"
       )

@@ -5,8 +5,16 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
+const Gettext = imports.gettext;
+const Utils = Me.imports.utils;
 
-function init() {}
+Gettext.bindtextdomain( "OptimusManagerIndicator", Me.dir.get_child('locale').get_path() );
+Gettext.textdomain("OptimusManagerIndicator");
+
+const _ = Gettext.gettext;
+
+function init() {
+}
 
 function buildPrefsWidget() {
   let settings = ExtensionUtils.getSettings(
@@ -27,27 +35,27 @@ function buildPrefsWidget() {
   }
   
   let alwaysGpuTempLbl = new Gtk.Label({
-    label: "Always show GPU Temperature, even if Optimus Manager is unavailable",
+    label: _("Always show GPU Temperature, even if Optimus Manager is unavailable"),
     halign: Gtk.Align.START,
   });
   let dynamicHybridLbl = new Gtk.Label({
-    label: "Dynamic icon behaviour in hybrid mode, nvidia icon only if gpu is in use",
+    label: _("Dynamic icon behaviour in hybrid mode, nvidia icon only if gpu is in use"),
     halign: Gtk.Align.START,
   });
   let showGPUTempLbl = new Gtk.Label({
-    label: "Show GPU Temperature",
+    label: _("Show GPU Temperature"),
     halign: Gtk.Align.START,
   });
   let showGPUUtilizationLbl = new Gtk.Label({
-    label: "Show GPU Utilization",
+    label: _("Show GPU Utilization"),
     halign: Gtk.Align.START,
   });
   let showGPUMemoryUtilizationLbl = new Gtk.Label({
-    label: "Show GPU Memory Utilization",
+    label: _("Show GPU Memory Utilization"),
     halign: Gtk.Align.START,
   });
   let restartGShellLbl = new Gtk.Label({
-    label: "Restart Gnome Shell "+shellVersion.toString() +" (alt + F2, type r and hit ENTER) to see the changes",
+    label: _("Restart Gnome Shell ")+shellVersion.toString() +_(" (alt + F2, type r and hit ENTER) to see the changes"),
     halign: Gtk.Align.START,
   });
 
@@ -58,7 +66,7 @@ function buildPrefsWidget() {
   let showGPUMemoryUtilizationSw = new Gtk.Switch();
 
   let saveButton = new Gtk.Button({
-    label: " Save Changes ",
+    label: _(" Save Changes "),
     visible: true,
   });
   

@@ -1,0 +1,83 @@
+# Spanish translations for PACKAGE package.
+# Copyright (C) 2021 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#  <andr3slelouch@github.com>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-04-24 18:06-0500\n"
+"PO-Revision-Date: 2021-04-24 18:07-0500\n"
+"Last-Translator:  <andr3slelouch@github.com>\n"
+"Language-Team: Spanish <es@tp.org.es>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: extension.js:34 extension.js:77
+msgid "Yes"
+msgstr "Sí"
+
+#: extension.js:72
+msgid "No"
+msgstr "No"
+
+#: extension.js:84
+msgid "Restart X server to switch on "
+msgstr "¿Reiniciar el servidor de gráficos X para activar "
+
+#: extension.js:238
+msgid "NVIDIA PRIME Profiles"
+msgstr "Perfiles NVIDIA PRIME"
+
+#: extension.js:244
+msgid "Switch to INTEL"
+msgstr "Cambiar a INTEL"
+
+#: extension.js:250
+msgid "Switch to HYBRID"
+msgstr "Cambiar a HYBRID"
+
+#: extension.js:256
+msgid "Switch to NVIDIA"
+msgstr "Cambiar a NVIDIA"
+
+#: extension.js:414
+msgid "You're not using GDM-PRIME"
+msgstr "Ud. no está usando GDM-PRIME"
+
+#: prefs.js:35
+msgid "Always show GPU Temperature, even if Optimus Manager is unavailable"
+msgstr "Mostrar siempre la temperatura de la GPU, incluso si Optimus Manager no está disponible"
+
+#: prefs.js:39
+msgid ""
+"Dynamic icon behaviour in hybrid mode, nvidia icon only if gpu is in use"
+msgstr "Comportamiento dinámico del ícono en modo hybrid, ícono de nvidia solo si se está usando gpu"
+
+#: prefs.js:43
+msgid "Show GPU Temperature"
+msgstr "Mostrar la Temperatura de la GPU"
+
+#: prefs.js:47
+msgid "Show GPU Utilization"
+msgstr "Mostrar la utilización de la GPU"
+
+#: prefs.js:51
+msgid "Show GPU Memory Utilization"
+msgstr "Mostrar la utilización de la memoria de la GPU"
+
+#: prefs.js:55
+msgid "Restart Gnome Shell "
+msgstr "Reiniciar Gnome Shell "
+
+#: prefs.js:55
+msgid " (alt + F2, type r and hit ENTER) to see the changes"
+msgstr " (alt + F2, escriba r y presione ENTER) para ver los cambios"
+
+#: prefs.js:66
+msgid " Save Changes "
+msgstr " Guardar Cambios "
