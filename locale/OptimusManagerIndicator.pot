@@ -1,0 +1,83 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-04-24 18:06-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: extension.js:34 extension.js:77
+msgid "Yes"
+msgstr ""
+
+#: extension.js:72
+msgid "No"
+msgstr ""
+
+#: extension.js:84
+msgid "Restart X server to switch on "
+msgstr ""
+
+#: extension.js:238
+msgid "NVIDIA PRIME Profiles"
+msgstr ""
+
+#: extension.js:244
+msgid "Switch to INTEL"
+msgstr ""
+
+#: extension.js:250
+msgid "Switch to HYBRID"
+msgstr ""
+
+#: extension.js:256
+msgid "Switch to NVIDIA"
+msgstr ""
+
+#: extension.js:414
+msgid "You're not using GDM-PRIME"
+msgstr ""
+
+#: prefs.js:38
+msgid "Always show GPU Temperature, even if Optimus Manager is unavailable"
+msgstr ""
+
+#: prefs.js:42
+msgid ""
+"Dynamic icon behaviour in hybrid mode, nvidia icon only if gpu is in use"
+msgstr ""
+
+#: prefs.js:46
+msgid "Show GPU Temperature"
+msgstr ""
+
+#: prefs.js:50
+msgid "Show GPU Utilization"
+msgstr ""
+
+#: prefs.js:54
+msgid "Show GPU Memory Utilization"
+msgstr ""
+
+#: prefs.js:58
+msgid "Restart Gnome Shell "
+msgstr ""
+
+#: prefs.js:58
+msgid " (alt + F2, type r and hit ENTER) to see the changes"
+msgstr ""
+
+#: prefs.js:69
+msgid " Save Changes "
+msgstr ""
