@@ -434,23 +434,18 @@ const OptimusManagerIndicator = new Lang.Class({
     var [ok,optimusManagerOut,optimusManagerErr,exit] = GLib.spawn_command_line_sync(
         "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
     );
-    var [ok, out, err, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
+    var [ok, gpuValues, err, exit] = GLib.spawn_command_line_sync(
+      "/bin/bash -c \"nvidia-smi -q | head -150 | grep 'GPU Current Temp\\|Gpu\\|Memory' | awk '{ print (length($5) > 0) ? $5 : $3}' | tail -n 11\""
     );
-    var [ok, gpuUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Gpu' | awk '{print $3}'\""
-    );
-    var [ok, gpuMemUtilization, nvidiaSmiErr, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q -d UTILIZATION | head -13 |grep 'Memory' | awk '{print $3}'\""
-    );
-
+    gpuValues = ByteArray.toString(gpuValues);
+    var gpuValuesArr=gpuValues.split("\n");
     let mode = "";
     
     optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
     optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
-    gpuUtilization = ByteArray.toString(gpuUtilization).replace("\n", "");
-    gpuMemUtilization = ByteArray.toString(gpuMemUtilization).replace("\n", "");
-    out = ByteArray.toString(out).replace("\n", "");
+    gpuUtilization = gpuValuesArr[0];
+    gpuMemUtilization = gpuValuesArr[1];
+    out = gpuValuesArr[10];
     
     panelTempText.set_text(out + "°C");
     panelGpuUtilizationText.set_text(gpuUtilization+"%");
