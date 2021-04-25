@@ -31,28 +31,6 @@ Gettext.textdomain("OptimusManagerIndicator");
 
 const _ = Gettext.gettext;
 
-log(_("Yes"));
-
-let distroName = "/bin/bash -c \"cat /etc/issue.net | awk '{print $1}'\"";
-let nvidiaSwitch = "optimus-manager --no-confirm --switch nvidia";
-let hybridSwitch = "optimus-manager --no-confirm --switch hybrid";
-let intelSwitch = "optimus-manager --no-confirm --switch intel";
-
-let switchCommandsDict = {
-  Arch: {
-    nvidiaSwitch: "optimus-manager --no-confirm --switch nvidia",
-    hybridSwitch: "optimus-manager --no-confirm --switch hybrid",
-    intelSwitch: "optimus-manager --no-confirm --switch intel",
-  },
-  Ubuntu: {
-    nvidiaSwitch: "prime-select nvidia",
-    hybridSwitch: "prime-select on-demand",
-    intelSwitch: "prime-select intel",
-  },
-};
-
-let notifySwitch =
-  'notify-send -h int:transient:2 -i \\"dialog-information-symbolic\\" \\"Optimus Manager Indicator\\" \\"Switching graphics and restaring X server to finalize process! \\" ; ';
 let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
 let panelTempText, timeout, statusIcon, panelGpuUtilizationText,panelGpuMemoryText;
 
@@ -93,7 +71,7 @@ const OptimusManagerDialog = new Lang.Class({
     },
 
     _onYesButtonPressed: function() {
-      log(this._switching);
+      this._detectDistro();
       if (this._switching["distro"] == "arch-based"){
         var [ok, out, err, exit] = GLib.spawn_command_line_sync(
           "prime-offload"
@@ -138,7 +116,6 @@ const OptimusManagerDialog = new Lang.Class({
       }else if(detectPrimeSelect !== ""){
         this._switching = switchCommandsDict["ubuntuBased"];
       }
-      
     },
   });
 /**
