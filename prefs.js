@@ -6,7 +6,6 @@ const Config = imports.misc.config;
 const [major] = Config.PACKAGE_VERSION.split('.');
 const shellVersion = Number.parseInt(major);
 const Gettext = imports.gettext;
-const Utils = Me.imports.utils;
 
 Gettext.bindtextdomain( "OptimusManagerIndicator", Me.dir.get_child('locale').get_path() );
 Gettext.textdomain("OptimusManagerIndicator");
