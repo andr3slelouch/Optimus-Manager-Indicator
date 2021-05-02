@@ -38,7 +38,7 @@ var Switch = class Switch {
 
     // make getter store default query
     // (if not already done so)
-    this.defaultQuery = null;
+    this.defaultQuery;
   }
 
   /**
