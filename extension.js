@@ -61,7 +61,10 @@ const OptimusManagerDialog = new Lang.Class({
     });
     this._mode = mode;
     this._switching = {};
-    this.switch = new Prime.Switch();
+    this._detectDistro();
+    if (this._switching["distro"] == "ubuntu-based") {
+      this.switch = new Prime.Switch();
+    }
 
     this.setButtons([
       {
@@ -106,7 +109,7 @@ const OptimusManagerDialog = new Lang.Class({
   },
 
   _onYesButtonPressed: function () {
-    this._detectDistro();
+    //this._detectDistro();
     if (this._switching["distro"] == "arch-based") {
       GLib.spawn_command_line_sync("prime-offload");
       GLib.spawn_command_line_sync(this._switching[this._mode]);
