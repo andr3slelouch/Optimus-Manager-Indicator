@@ -25,17 +25,13 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const ByteArray = imports.byteArray;
 const Gtk = imports.gi.Gtk;
-const Me = imports.misc.extensionUtils.getCurrentExtension();
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
 const Gettext = imports.gettext;
 const Prime = Me.imports.prime;
 
-Gettext.bindtextdomain(
-  "OptimusManagerIndicator",
-  Me.dir.get_child("locale").get_path()
-);
-Gettext.textdomain("OptimusManagerIndicator");
-
-const _ = Gettext.gettext;
+const Domain = Gettext.domain("OptimusManagerIndicator");
+const _ = Domain.gettext;
 
 let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
 let panelTempText,
@@ -43,7 +39,10 @@ let panelTempText,
   statusIcon,
   panelGpuUtilizationText,
   panelGpuMemoryText;
-
+/**
+ * This is our Optimus Manager Indicator instance.
+ */
+let optimusManagerIndicator;
 /**
  * Optimus Manager Dialog Class:
  * Dialog for asking confirmation to the user for switching profiles
@@ -164,6 +163,27 @@ const OptimusManagerIndicator = new Lang.Class({
   Name: "OptimusManagerIndicator",
   Extends: PanelMenu.Button,
 
+  /**
+   * This function is called by GNOME Shell to enable the extension.
+   */
+  enable: function () {
+    optimusManagerIndicator = new OptimusManagerIndicator();
+    Main.panel.addToStatusArea(
+      "optimus-manager-indicator",
+      optimusManagerIndicator
+    );
+  },
+
+  /**
+   * This function is called by GNOME Shell to disable the extension.
+   */
+  disable: function () {
+    Mainloop.source_remove(timeout);
+    optimusManagerIndicator.destroy();
+    panelTempText.destroy();
+    panelGpuUtilizationText.destroy();
+    panelGpuMemoryText.destroy();
+  },
   /**
    * This function sets the status icon.
    */
@@ -568,33 +588,6 @@ const OptimusManagerIndicator = new Lang.Class({
   },
 });
 
-/**
- * This is our Optimus Manager Indicator instance.
- */
-let optimusManagerIndicator;
-
-/**
- * This function is called by GNOME Shell to enable the extension.
- */
-function enable() {
-  optimusManagerIndicator = new OptimusManagerIndicator();
-  Main.panel.addToStatusArea(
-    "optimus-manager-indicator",
-    optimusManagerIndicator
-  );
-}
-
-/**
- * This function is called by GNOME Shell to disable the extension.
- */
-function disable() {
-  Mainloop.source_remove(timeout);
-  optimusManagerIndicator.destroy();
-  panelTempText.destroy();
-  panelGpuUtilizationText.destroy();
-  panelGpuMemoryText.destroy();
-}
-
 function getSettings() {
   let GioSSS = Gio.SettingsSchemaSource;
   let schemaSource = GioSSS.new_from_directory(
@@ -610,4 +603,9 @@ function getSettings() {
     throw new Error("Cannot find schemas");
   }
   return new Gio.Settings({ settings_schema: schemaObj });
+}
+
+function init() {
+  ExtensionUtils.initTranslations("OptimusManagerIndicator");
+  return new OptimusManagerIndicator();
 }
