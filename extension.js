@@ -50,12 +50,10 @@ let optimusManagerIndicator;
  * @param  {String} mode
  * @return {Object}
  */
-const OptimusManagerDialog = new Lang.Class({
-  Name: "OptimusManagerDialog",
-  Extends: ModalDialog.ModalDialog,
-
-  _init: function (mode) {
-    this.parent({
+const OptimusManagerDialog = GObject.registerClass(
+  class OptimusManagerDialog extends ModalDialog.ModalDialog {
+  _init(mode) {
+    super._init({
       styleClass: "extension-dialog",
     });
     this._mode = mode;
@@ -83,7 +81,7 @@ const OptimusManagerDialog = new Lang.Class({
     });
 
     this.contentLayout.add(content);
-  },
+  }
 
   /**
    * Logout gnome session
@@ -100,14 +98,14 @@ const OptimusManagerDialog = new Lang.Class({
 
     log("gnome session logout");
     sessionManager.LogoutRemote(mode);
-  },
+  }
 
-  _onNoButtonPressed: function () {
+  _onNoButtonPressed() {
     this.close();
     this._invocation.return_value(GLib.Variant.new("(s)", ["cancelled"]));
-  },
+  }
 
-  _onYesButtonPressed: function () {
+  _onYesButtonPressed() {
     //this._detectDistro();
     if (this._switching["distro"] == "arch-based") {
       GLib.spawn_command_line_sync("prime-offload");
@@ -122,11 +120,12 @@ const OptimusManagerDialog = new Lang.Class({
       );
       this.close();
     }
-  },
+  }
+
   /**
    * This function would define the correct commands to switch depending if is Ubuntu or Arch.
    */
-  _detectDistro: function () {
+  _detectDistro() {
     var switchCommandsDict = {
       archBased: {
         nvidia: "optimus-manager --no-confirm --switch nvidia",
@@ -154,40 +153,39 @@ const OptimusManagerDialog = new Lang.Class({
     } else if (detectPrimeSelect !== "") {
       this._switching = switchCommandsDict["ubuntuBased"];
     }
-  },
+  }
 });
 /**
  * Behold the Optimus Manager Indicator Indicator class.
  */
-const OptimusManagerIndicator = new Lang.Class({
-  Name: "OptimusManagerIndicator",
-  Extends: PanelMenu.Button,
-
+const OptimusManagerIndicator = GObject.registerClass(
+  class OptimusManagerIndicator extends PanelMenu.Button {
   /**
    * This function is called by GNOME Shell to enable the extension.
    */
-  enable: function () {
+  enable() {
     optimusManagerIndicator = new OptimusManagerIndicator();
     Main.panel.addToStatusArea(
       "optimus-manager-indicator",
       optimusManagerIndicator
     );
-  },
+  }
 
   /**
    * This function is called by GNOME Shell to disable the extension.
    */
-  disable: function () {
+  disable() {
     Mainloop.source_remove(timeout);
     optimusManagerIndicator.destroy();
     panelTempText.destroy();
     panelGpuUtilizationText.destroy();
     panelGpuMemoryText.destroy();
-  },
+  }
+
   /**
    * This function sets the status icon.
    */
-  _setIcon: function (iconName) {
+  _setIcon(iconName) {
     if (iconName === "error") {
       this.iconName = iconName;
       statusIcon = new St.Icon({
@@ -210,9 +208,10 @@ const OptimusManagerIndicator = new Lang.Class({
           "symbolic.svg"
       )
     );
-  },
-  _init: function () {
-    this.parent(0.0, "OptimusManagerIndicator");
+  }
+
+  _init() {
+    super._init(null, "OptimusManagerIndicator");
 
     /**
      * Construct the status icon and add it to the panel.
@@ -349,26 +348,29 @@ const OptimusManagerIndicator = new Lang.Class({
       })
     );
     this._setMode(this.gpu_mode);
-  },
+  }
+
   /**
    * This function shows or hides the indicator.
    */
-  _setIndicatorVisibility: function (visible) {
+  _setIndicatorVisibility(visible) {
     this.visible = visible;
-  },
+  }
+
   /**
    * This function saves the current mode and makes calls to set both the icon and menu into the requested mode.
    */
-  _setMode: function (mode) {
+  _setMode(mode) {
     this._setTempMode(mode);
     this._setMenuMode(mode);
 
     this.gpu_mode = mode;
-  },
+  }
+
   /**
    * This function would check the optimus manager status
    */
-  _detectPrimeState: function () {
+  _detectPrimeState() {
     let settings = getSettings();
     let forcedMode = settings.get_boolean("forced-mode");
     if (forcedMode) {
@@ -430,11 +432,12 @@ const OptimusManagerIndicator = new Lang.Class({
         this._setIcon(this.gpu_mode);
       }
     }
-  },
+  }
+
   /**
    * This function makes every menu item reflect the current mode Optimus Manager Indicator is in.
    */
-  _setMenuMode: function (mode) {
+  _setMenuMode(mode) {
     switch (mode) {
       case "intel":
         this.nvidiaProfiles.visible = false;
@@ -493,11 +496,12 @@ const OptimusManagerIndicator = new Lang.Class({
         this.switchNvidia.setSensitive(true);
         break;
     }
-  },
+  }
+
   /**
    * This function makes the status icon reflect the current mode Optimus Manager Indicator is in.
    */
-  _setTempMode: function (mode) {
+  _setTempMode(mode) {
     switch (mode) {
       case "intel":
         break;
@@ -521,8 +525,9 @@ const OptimusManagerIndicator = new Lang.Class({
       default:
         break;
     }
-  },
-  _setTemp: function () {
+  }
+
+  _setTemp() {
     let settings = getSettings();
     let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
     var [
@@ -585,7 +590,7 @@ const OptimusManagerIndicator = new Lang.Class({
       );
     }
     return true;
-  },
+  }
 });
 
 function getSettings() {
