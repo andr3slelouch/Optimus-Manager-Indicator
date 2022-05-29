@@ -250,28 +250,31 @@ const OptimusManagerIndicator = GObject.registerClass(
       style_class: "panel-status-menu-box",
     });
     topBox.add_child(statusIcon);
-    if (forcedMode || showGPUTemp) {
-      topBox.add_child(panelGpuTemperatureText);
-    }
-    if (showGPUUtilization) {
-      let gpuUtilizationIcon = new St.Icon({
-        style_class: "system-status-icon",
-      });
-      gpuUtilizationIcon.gicon = Gio.icon_new_for_string(
-        Me.dir.get_child("icons").get_path() + "/card-symbolic.svg"
-      );
-      topBox.add_child(gpuUtilizationIcon);
-      topBox.add_child(panelGpuUtilizationText);
-    }
-    if (showGPUMemoryUtilization) {
-      let gpuMemoryUtilizationIcon = new St.Icon({
-        style_class: "system-status-icon",
-      });
-      gpuMemoryUtilizationIcon.gicon = Gio.icon_new_for_string(
-        Me.dir.get_child("icons").get_path() + "/ram-symbolic.svg"
-      );
-      topBox.add_child(gpuMemoryUtilizationIcon);
-      topBox.add_child(panelGpuMemoryText);
+    
+    if( this.gpu_mode != "intel") {
+      if (forcedMode || showGPUTemp) {
+        topBox.add_child(panelGpuTemperatureText);
+      }
+      if (showGPUUtilization) {
+        let gpuUtilizationIcon = new St.Icon({
+          style_class: "system-status-icon",
+        });
+        gpuUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child("icons").get_path() + "/card-symbolic.svg"
+        );
+        topBox.add_child(gpuUtilizationIcon);
+        topBox.add_child(panelGpuUtilizationText);
+      }
+      if (showGPUMemoryUtilization) {
+        let gpuMemoryUtilizationIcon = new St.Icon({
+          style_class: "system-status-icon",
+        });
+        gpuMemoryUtilizationIcon.gicon = Gio.icon_new_for_string(
+          Me.dir.get_child("icons").get_path() + "/ram-symbolic.svg"
+        );
+        topBox.add_child(gpuMemoryUtilizationIcon);
+        topBox.add_child(panelGpuMemoryText);
+      }
     }
 
     this.add_child(topBox);
@@ -507,19 +510,10 @@ const OptimusManagerIndicator = GObject.registerClass(
         break;
 
       case "hybrid":
-        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
-        break;
-
       case "on-demand":
-        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
-        break;
-
       case "nvidia":
-        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
-        break;
-
       case "forced":
-        timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp);
+        timeout = Mainloop.timeout_add_seconds(2.0, Lang.bind(this, this._setTemp));
         break;
 
       default:
@@ -537,9 +531,6 @@ const OptimusManagerIndicator = GObject.registerClass(
     gpuValues = ByteArray.toString(gpuValues);
     var gpuValuesArr = gpuValues.split("\n");
     
-    // optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
-    // optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
-
     let gpuUtilization = gpuValuesArr[0];
     let gpuMemUtilization = gpuValuesArr[1];
     let gpuTemperature = gpuValuesArr[2];
@@ -564,7 +555,7 @@ const OptimusManagerIndicator = GObject.registerClass(
         )
       );
     }
-    return true;
+    return GLib.SOURCE_CONTINUE;
   }
 });
 
