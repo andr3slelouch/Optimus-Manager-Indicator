@@ -34,9 +34,9 @@ const Domain = Gettext.domain("OptimusManagerIndicator");
 const _ = Domain.gettext;
 
 let nvidiaSettings = "nvidia-settings -p 'PRIME Profiles'";
-let panelTempText,
-  timeout,
+let timeout,
   statusIcon,
+  panelGpuTemperatureText,
   panelGpuUtilizationText,
   panelGpuMemoryText;
 /**
@@ -177,7 +177,7 @@ const OptimusManagerIndicator = GObject.registerClass(
   disable() {
     Mainloop.source_remove(timeout);
     optimusManagerIndicator.destroy();
-    panelTempText.destroy();
+    panelGpuTemperatureText.destroy();
     panelGpuUtilizationText.destroy();
     panelGpuMemoryText.destroy();
   }
@@ -219,7 +219,7 @@ const OptimusManagerIndicator = GObject.registerClass(
     statusIcon = new St.Icon({
       style_class: "system-status-icon",
     });
-    panelTempText = new St.Label({
+    panelGpuTemperatureText = new St.Label({
       y_expand: true,
       y_align: Clutter.ActorAlign.CENTER,
       text: "",
@@ -251,7 +251,7 @@ const OptimusManagerIndicator = GObject.registerClass(
     });
     topBox.add_child(statusIcon);
     if (forcedMode || showGPUTemp) {
-      topBox.add_child(panelTempText);
+      topBox.add_child(panelGpuTemperatureText);
     }
     if (showGPUUtilization) {
       let gpuUtilizationIcon = new St.Icon({
@@ -530,52 +530,27 @@ const OptimusManagerIndicator = GObject.registerClass(
   _setTemp() {
     let settings = getSettings();
     let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
-    var [
-      ok,
-      optimusManagerOut,
-      optimusManagerErr,
-      exit,
-    ] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
-    );
+
     var [ok, gpuValues, err, exit] = GLib.spawn_command_line_sync(
-      "/bin/bash -c \"nvidia-smi -q | head -150 | grep 'GPU Current Temp\\|Gpu\\|Memory' | awk '{ print (length($5) > 0) ? $5 : $3}' | tail -n 11\""
-    );
+      "/bin/bash -c \"nvidia-smi -q | egrep 'GPU Current Temp|(Gpu|Memory).*%' | awk '{ print (length($5) > 0) ? $5 : $3}'\""
+      );
     gpuValues = ByteArray.toString(gpuValues);
     var gpuValuesArr = gpuValues.split("\n");
-    let mode = "";
+    
+    // optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
+    // optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
 
-    optimusManagerErr = ByteArray.toString(optimusManagerErr).replace("\n", "");
-    optimusManagerOut = ByteArray.toString(optimusManagerOut).replace("\n", "");
     let gpuUtilization = gpuValuesArr[0];
     let gpuMemUtilization = gpuValuesArr[1];
-    let out = gpuValuesArr[10];
-
-    panelTempText.set_text(out + "°C");
+    let gpuTemperature = gpuValuesArr[2];
+    
+    panelGpuTemperatureText.set_text(gpuTemperature + "°C");
     panelGpuUtilizationText.set_text(gpuUtilization + "%");
     panelGpuMemoryText.set_text(gpuMemUtilization + "%");
-
-    if (optimusManagerErr !== "") {
-      var [
-        ok,
-        optimusManagerOut,
-        optimusManagerErr,
-        exit,
-      ] = GLib.spawn_command_line_sync('/bin/bash -c "prime-select query"');
-      optimusManagerOut = ByteArray.toString(optimusManagerOut).replace(
-        "\n",
-        ""
-      );
-    }
-
-    if (optimusManagerOut === "integrated") {
-      optimusManagerOut = "intel";
-    } else if (optimusManagerOut === "on-demand") {
-      optimusManagerOut = "hybrid";
-    }
-
-    if (optimusManagerOut === "hybrid" && dynamicHybridMode) {
-      if (gpuUtilization === "0" && gpuMemUtilization === "0") {
+    
+    if ((this.gpu_mode ==  "hybrid") && dynamicHybridMode) {
+     let mode = "";
+     if (gpuUtilization === "0" && gpuMemUtilization === "0") {
         mode = "intel";
       } else {
         mode = "nvidia";
