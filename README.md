@@ -9,9 +9,8 @@ GNOME Shell extension to Intel/Hybrid/NVIDIA GPU switch and show GPU status only
 
 ## Install
 
-1. Open [Optimus Manager Indicator] on GNOME Shell Extensions site.
-2. Click slider to install extension.
-
-[Optimus Manager Indicator]: https://extensions.gnome.org/extension/2908/optimus-manager-indicator/
+1. git clone https://github.com/CZemft/Optimus-Manager-Indicator.git
+2. rename Optimus-Manager-Indicator to optimus-manager-indicator@andr3slelouch.github.com
+3. place optimus-manager-indicator@andr3slelouch.github.com in ~/.local/share/gnome-shell/extensions/
 
 Note: The GPU mode activated doesn't show up in the options, by example: When you turn on the PC you are gonna be in Intel mode so Intel option is not gonna be shown.
