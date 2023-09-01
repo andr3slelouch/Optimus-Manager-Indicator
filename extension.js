@@ -17,7 +17,7 @@ const St = imports.gi.St;
 const Dialog = imports.ui.dialog;
 const Lang = imports.lang;
 const Main = imports.ui.main;
-const System = Main.panel.statusArea.aggregateMenu._system;
+const System = Main.panel.statusArea._system;
 const GnomeSession = imports.misc.gnomeSession;
 const Mainloop = imports.mainloop;
 const ModalDialog = imports.ui.modalDialog;
@@ -508,7 +508,7 @@ const OptimusManagerIndicator = GObject.registerClass(
     _setTempMode(mode) {
       switch (mode) {
         case "intel":
-          break;      
+          break;
 
         case "hybrid":
         case "on-demand":
@@ -534,7 +534,7 @@ const OptimusManagerIndicator = GObject.registerClass(
       );
       smi_proc.communicate_utf8_async(null, null, (proc, res) => {
         try {
-          let [, stdout, ] = proc.communicate_utf8_finish(res);
+          let [, stdout,] = proc.communicate_utf8_finish(res);
 
           if (proc.get_successful()) {
             // log('nvidia-smi process succeeded');
@@ -587,7 +587,7 @@ const OptimusManagerIndicator = GObject.registerClass(
           logError(e);
         }
       });
-      
+
       // return GLib.SOURCE_REMOVE;
       return GLib.SOURCE_CONTINUE;
     }
