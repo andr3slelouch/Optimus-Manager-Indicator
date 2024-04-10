@@ -5,11 +5,9 @@
 "use strict";
 
 // import modules
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const Signals = imports.signals;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
 /**
  * Switch constructor:
@@ -18,13 +16,14 @@ const Me = ExtensionUtils.getCurrentExtension();
  * @param  {Object}
  * @return {Object}
  */
-var Switch = class Switch {
+export const Switch = class extends Signals.EventEmitter{
   /**
    * Constructor
    *
    * @return {Void}
    */
   constructor() {
+    super();
     this._commands = null;
     this._gpu = null;
     this._listener = null;
@@ -343,4 +342,4 @@ var Switch = class Switch {
   /* --- */
 };
 
-Signals.addSignalMethods(Switch.prototype);
+//Signals.addSignalMethods(Switch.prototype);

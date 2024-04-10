@@ -26,7 +26,6 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Button} from 'resource:///org/gnome/shell/ui/panelMenu.js';
 //import ByteArray from 'bytearray';
 import Gtk from 'gi://Gtk';
 //import ExtensionUtils from 'extensionUtils';
@@ -146,7 +145,7 @@ const OptimusManagerDialog = GObject.registerClass(
 );
 
 export default class OptimusManagerExtension extends Extension {
-    constructor(metadata) {
+    constructor(medatada) {
         super(metadata);
     }
 
@@ -155,35 +154,19 @@ export default class OptimusManagerExtension extends Extension {
     }
 
     enable(){
-        this.optimusManagerIndicator = new OptimusManagerIndicator(this);
-        Main.panel.addToStatusArea(
-            "optimus-manager-indicator",
-            this.optimusManagerIndicator
-        );
-        //positionchanged
-        //this.optimusManagerIndicator._positionChanged();
-    }
-
-    disable(){
-        this.optimusManagerIndicator.destroy();
-        this.optimusManagerIndicator = null;
+        
     }
 }
 
 /**
  * Optimus Manager Indicator Class
  */
-const OptimusManagerIndicator = GObject.registerClass(
-    {
-        _temp: null,
-    },
-
-    class OptimusManagerIndicator extends Button {
-        /*constructor(metadata) {
-            super(metadata);
-        }*/
-        //class OptimusManagerIndicator extends PanelMenu.Button {
-        /*enable() {
+export default class OptimusManagerIndicator extends Extension {
+    constructor(metadata) {
+        super(metadata);
+    }
+    //class OptimusManagerIndicator extends PanelMenu.Button {
+        enable() {
             this._addIndicator();
             Main.panel.addToStatusArea(
                 "optimus-manager-indicator",
@@ -197,7 +180,7 @@ const OptimusManagerIndicator = GObject.registerClass(
             panelGpuTemperatureText.destroy();
             panelGpuUtilizationText.destroy();
             panelGpuMemoryText.destroy();
-        }*/
+        }
 
         _setIcon(iconName) {
             if (iconName === "error") {
@@ -209,14 +192,14 @@ const OptimusManagerIndicator = GObject.registerClass(
             }
             this.iconName = iconName;
             statusIcon.gicon = Gio.icon_new_for_string(
-                this._extension.dir.get_child("icons").get_path() +
+                this.dir.get_child("icons").get_path() +
                 "/primeindicator" +
                 iconName +
                 "symbolic.svg"
             );
             statusIcon.set_gicon(
                 Gio.icon_new_for_string(
-                    this._extension.dir.get_child("icons").get_path() +
+                    this.dir.get_child("icons").get_path() +
                     "/primeindicator" +
                     iconName +
                     "symbolic.svg"
@@ -224,10 +207,9 @@ const OptimusManagerIndicator = GObject.registerClass(
             );
         }
 
-        _init(ext) {
-        //_addIndicator() {
-            super._init(null, "OptimusManagerIndicator");
-            this._extension = ext
+        //_init() {
+        _addIndicator() {
+            //super._init(null, "OptimusManagerIndicator");
 
             /**
              * Construct the status icon and add it to the panel.
@@ -253,7 +235,7 @@ const OptimusManagerIndicator = GObject.registerClass(
 
             this._detectPrimeState();
 
-            let settings = this._extension.getSettings();
+            let settings = this.getSettings();
             let forcedMode = settings.get_boolean("forced-mode");
             let showGPUTemp = settings.get_boolean("show-gpu-temperature");
             let showGPUUtilization = settings.get_boolean("show-gpu-utilization");
@@ -276,7 +258,7 @@ const OptimusManagerIndicator = GObject.registerClass(
                         style_class: "system-status-icon",
                     });
                     gpuUtilizationIcon.gicon = Gio.icon_new_for_string(
-                        this._extension.dir.get_child("icons").get_path() + "/card-symbolic.svg"
+                        this.dir.get_child("icons").get_path() + "/card-symbolic.svg"
                     );
                     topBox.add_child(gpuUtilizationIcon);
                     topBox.add_child(panelGpuUtilizationText);
@@ -286,7 +268,7 @@ const OptimusManagerIndicator = GObject.registerClass(
                         style_class: "system-status-icon",
                     });
                     gpuMemoryUtilizationIcon.gicon = Gio.icon_new_for_string(
-                        this._extension.dir.get_child("icons").get_path() + "/ram-symbolic.svg"
+                        this.dir.get_child("icons").get_path() + "/ram-symbolic.svg"
                     );
                     topBox.add_child(gpuMemoryUtilizationIcon);
                     topBox.add_child(panelGpuMemoryText);
@@ -302,28 +284,28 @@ const OptimusManagerIndicator = GObject.registerClass(
             this.nvidiaProfiles = new PopupMenu.PopupImageMenuItem(
                 _("NVIDIA PRIME Profiles"),
                 Gio.icon_new_for_string(
-                    this._extension.dir.get_child("icons").get_path() +
+                    this.dir.get_child("icons").get_path() +
                     "/primeindicatornvidiasymbolic.svg"
                 )
             );
             this.switchIntel = new PopupMenu.PopupImageMenuItem(
                 _("Switch to INTEL"),
                 Gio.icon_new_for_string(
-                    this._extension.dir.get_child("icons").get_path() +
+                    this.dir.get_child("icons").get_path() +
                     "/primeindicatorintelsymbolic.svg"
                 )
             );
             this.switchHybrid = new PopupMenu.PopupImageMenuItem(
                 _("Switch to HYBRID"),
                 Gio.icon_new_for_string(
-                    this._extension.dir.get_child("icons").get_path() +
+                    this.dir.get_child("icons").get_path() +
                     "/primeindicatorhybridsymbolic.svg"
                 )
             );
             this.switchNvidia = new PopupMenu.PopupImageMenuItem(
                 _("Switch to NVIDIA"),
                 Gio.icon_new_for_string(
-                    this._extension.dir.get_child("icons").get_path() +
+                    this.dir.get_child("icons").get_path() +
                     "/primeindicatornvidiasymbolic.svg"
                 )
             );
@@ -341,27 +323,27 @@ const OptimusManagerIndicator = GObject.registerClass(
              */
             this.nvidiaProfiles.connect(
                 "activate",
-                Function.prototype.bind(this, function () {
+                Lang.bind(this, function () {
                     GLib.spawn_command_line_async(nvidiaSettings);
                 })
             );
             this.switchIntel.connect(
                 "activate",
-                Function.prototype.bind(this, function () {
+                Lang.bind(this, function () {
                     let dialog = new OptimusManagerDialog("intel");
                     dialog.open(global.get_current_time());
                 })
             );
             this.switchHybrid.connect(
                 "activate",
-                Function.prototype.bind(this, function () {
+                Lang.bind(this, function () {
                     let dialog = new OptimusManagerDialog("hybrid");
                     dialog.open(global.get_current_time());
                 })
             );
             this.switchNvidia.connect(
                 "activate",
-                Function.prototype.bind(this, function () {
+                Lang.bind(this, function () {
                     let dialog = new OptimusManagerDialog("nvidia");
                     dialog.open(global.get_current_time());
                 })
@@ -381,7 +363,7 @@ const OptimusManagerIndicator = GObject.registerClass(
         }
 
         _detectPrimeState() {
-            let settings = this._extension.getSettings();
+            let settings = this.getSettings();
             let forcedMode = settings.get_boolean("forced-mode");
             if (forcedMode) {
                 this.gpu_mode = "forced";
@@ -517,14 +499,7 @@ const OptimusManagerIndicator = GObject.registerClass(
 
                 default:
                     this._setIcon("intel");
-
-                    try {
-                        throw Error('You\'re not using GDM-PRIME');
-                    } catch (e) {
-                        Main.notifyError('Optimus Manager Error', e.message);
-                    }
-
-                    //Main.notifyError("You're not using GDM-PRIME"));
+                    Main.notifyError(_("You're not using GDM-PRIME"));
                     this.nvidiaProfiles.visible = true;
                     this.nvidiaProfiles.setSensitive(true);
                     this.switchIntel.visible = true;
@@ -556,7 +531,7 @@ const OptimusManagerIndicator = GObject.registerClass(
 
 
         _setTemp() {
-            let settings = this._extension.getSettings();
+            let settings = this.getSettings();
             let dynamicHybridMode = settings.get_boolean("dynamic-hybrid-icon");
 
             this.xmlText = ""
@@ -588,7 +563,7 @@ const OptimusManagerIndicator = GObject.registerClass(
                             }
                             statusIcon.set_gicon(
                                 Gio.icon_new_for_string(
-                                    this._extension.dir.get_child("icons").get_path() +
+                                    this.dir.get_child("icons").get_path() +
                                     "/primeindicator" +
                                     mode +
                                     "symbolic.svg"
@@ -608,7 +583,6 @@ const OptimusManagerIndicator = GObject.registerClass(
         }
     }
     //);
-)
 
 /*
 function getSettings() {
@@ -631,5 +605,5 @@ function getSettings() {
 
 function init() {
     //ExtensionUtils.initTranslations("OptimusManagerIndicator");
-    return new OptimusManagerExtension();
+    return new OptimusManagerIndicator();
 }
