@@ -3,7 +3,7 @@
     <schema id="org.gnome.shell.extensions.optimus-manager-indicator"
         path="/org/gnome/shell/extensions/optimus-manager-indicator/">
         <key type="b" name="forced-mode">
-            <default>false</default>
+            <default>true</default>
             <summary>Flag to control if temperature is always displayed</summary>
             <description>If Optimus Manager is not available you could force the extension to show GPU temperature even if some capabilities are not available</description>
         </key>

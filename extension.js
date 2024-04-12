@@ -267,7 +267,7 @@ const OptimusManagerIndicator = GObject.registerClass(
             });
             topBox.add_child(statusIcon);
 
-            if (this.gpu_mode != "intel") {
+            if (this.gpu_mode !== "intel") {
                 if (forcedMode || showGPUTemp) {
                     topBox.add_child(panelGpuTemperatureText);
                 }
@@ -387,48 +387,6 @@ const OptimusManagerIndicator = GObject.registerClass(
                 this.gpu_mode = "forced";
                 this._setIcon("nvidia");
             } else {
-                /*var [
-                    ok,
-                    optimusManagerOut,
-                    optimusManagerErr,
-                    exit,
-                ] = GLib.spawn_command_line_sync(
-                    "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\""
-                );
-                var [
-                    ok,
-                    nvidiaSmiOut,
-                    nvidiaSmiErr,
-                    exit,
-                ] = GLib.spawn_command_line_sync(
-                    "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\""
-                );
-
-                optimusManagerOut = ByteArray.toString(optimusManagerOut).replace(
-                    "\n",
-                    ""
-                );
-                optimusManagerErr = ByteArray.toString(optimusManagerErr).replace(
-                    "\n",
-                    ""
-                );
-
-                if (optimusManagerErr !== "") {
-                    var [
-                        ok,
-                        optimusManagerOut,
-                        optimusManagerErr,
-                        exit,
-                    ] = GLib.spawn_command_line_sync('/bin/bash -c "prime-select query"');
-                    optimusManagerOut = ByteArray.toString(optimusManagerOut).replace(
-                        "\n",
-                        ""
-                    );
-                    optimusManagerErr = ByteArray.toString(optimusManagerErr).replace(
-                        "\n",
-                        ""
-                    );
-                }*/
 
                 const optimusManagerCommand = "/bin/bash -c \"optimus-manager --print-mode | grep 'Current GPU mode' | awk '{print $5}'\"";
                 const nvidiaSmiCommand = "/bin/bash -c \"nvidia-smi -q -d TEMPERATURE | grep 'GPU Current Temp' | awk '{print $5}'\"";
@@ -546,7 +504,11 @@ const OptimusManagerIndicator = GObject.registerClass(
                 case "on-demand":
                 case "nvidia":
                 case "forced":
-                    timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp.bind(this));
+
+                    //let safeTimeout = Math.min(this._refresh_rate, 2147483);
+                    timeout = GLib.timeout_add_seconds(
+                        GLib.PRIORITY_DEFAULT, 2.0, this._setTemp.bind(this));
+                    //timeout = Mainloop.timeout_add_seconds(2.0, this._setTemp.bind(this));
                     break;
 
                 default:
@@ -569,7 +531,7 @@ const OptimusManagerIndicator = GObject.registerClass(
                     let [, stdout, ] = proc.communicate_utf8_finish(res);
 
                     if (proc.get_successful()) {
-                        let xmlParsed = fromXML.fromXML(stdout);
+                        let xmlParsed = Fromxml.fromXML(stdout);
 
                         let gpuUtilization = xmlParsed.nvidia_smi_log.gpu.utilization.gpu_util;
                         let gpuMemUtilization = xmlParsed.nvidia_smi_log.gpu.utilization.memory_util;
